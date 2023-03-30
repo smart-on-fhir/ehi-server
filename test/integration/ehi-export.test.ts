@@ -32,11 +32,10 @@ describe("Kick off", () => {
         .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
         .expect(400, /Invalid token/));
 
-    it ('If no params are passed replies with 200 and link', async () => {
+    it ('If no params are passed replies with 202 and link', async () => {
         const result = await new EHIClient().kickOff("123")
         expect(result.link).to.exist;
-        // expect(result.status).to.not.exist;
-        expect(result.response.status).to.equal(200)
+        expect(result.response.status).to.equal(202)
     })
 
     it ('If params are passed replies with Content-Location header', async () => {

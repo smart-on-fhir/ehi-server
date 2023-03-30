@@ -108,6 +108,7 @@ export async function kickOff(req: Request, res: Response) {
 
     if (req.body?.resourceType !== "Parameters") {
         res.header("Link", `${baseUrl}${req.originalUrl}/customize?token=${req.headers.authorization?.replace(/^\s*bearer\s+/i, "")}; rel="patient-interaction"`)
+        res.status(202)
         res.json({ message: "Please follow the url in the link header to customize your export" })
     }
     else {
@@ -115,21 +116,6 @@ export async function kickOff(req: Request, res: Response) {
         res.status(202)
         res.end()
     }
-
-
-    // if (req.body?.resourceType !== "Parameters") {
-    //     res.header("Link", `${baseUrl}${req.originalUrl}/customize; rel="patient-interaction"`)
-    //     res.header("Access-Control-Expose-Headers", "Link")
-    //     res.json({ message: "Please follow the url in the link header to customize your export" })
-    // }
-    // else {
-    //     const job = await ExportJob.create(req.params.id)
-    //     job.kickOff(req)
-    //     res.status(202)
-    //     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
-    //     res.header("Access-Control-Expose-Headers", "Content-Location")
-    //     res.end()
-    // }
 }
 
 export async function renderForm(req: Request, res: Response) {
