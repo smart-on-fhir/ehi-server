@@ -1,0 +1,83 @@
+doctype html
+html(lang="en")
+    head
+        title SMART EHI Export Server - Export Filter Form
+        link(rel="stylesheet", href="/style.css")
+    body
+        #main
+            h1 Customize Your Export
+            hr
+            p.
+                This EHI Servers supports returning a subset of a patient's EHI
+                dataset. Please specify the content filters that should be
+                associated with this EHI Request.
+            p.text-muted.small.
+                When the link is accessed, the EHI Server MAY authenticate the
+                user using the same method as was used to request an access
+                token prior to displaying or accepting the form.
+            p.text-muted.small.
+                After the form is submitted, the EHI Server SHOULD redirect the
+                user to a url provided by the app at registration time.
+            p.text-muted.small.
+                Regardless of whether a patient interaction link is provided,
+                the EHI Server SHALL return a Content-Location header to
+                retrieve the status and results of the request as described in
+                the Async Pattern.
+
+            form(enctype="application/json")
+                h3 What encounters to include?
+                p
+                    label
+                        input(type="radio" name="since" autocomplete="off" value="1")
+                        |  Last Year
+                p
+                    label
+                        input(type="radio" name="since" autocomplete="off" value="5")
+                        |  Last 5 Years
+                p
+                    label
+                        input(type="radio" name="since" autocomplete="off" value="0")
+                        |  All Data
+                hr
+                br
+                .center
+                    button(disabled) Export
+
+        script.
+            (function() {
+                
+                const form = document.forms[0];
+
+                function check() {
+                    const data = new FormData(form)
+                    document.querySelector("button").disabled = !data.has("since")
+                }
+                
+                document.querySelectorAll('input[type="radio"]').forEach(input => {
+                    input.addEventListener("change", check, { once: true })
+                })
+
+                check()
+
+                form.addEventListener("submit", e => {
+                    e.preventDefault()
+                    const since = parseInt(document.querySelector('input[name="since"]:checked').value, 10)
+                    document.querySelector("button").disabled = true
+                    fetch("../$ehi-export", {
+                        method: "POST",
+                        headers: {
+                            "content-type" : "application/json",
+                            "authorization": "Bearer #{token}"
+                        },
+                        body: JSON.stringify({
+                            resourceType: "Parameters",
+                            parameter: [
+                                {
+                                    name: "since",
+                                    valueInteger: since
+                                }
+                            ]
+                        })
+                    })
+                })
+            })();

@@ -1,0 +1,84 @@
+body {
+    font-family: sans-serif;
+    font-family: 18px;
+    background : #F6F6F6;
+    margin: 0;
+    padding: 2em;
+}
+
+#main {
+    box-shadow: 0 0 0 5px #CCC;
+    max-width: 800px;
+    padding: 2em;
+    margin: 0 auto;
+    background: #FFF;
+    border-radius: 0.5em;
+}
+
+p {
+    margin: 0.2em 0;
+}
+
+.text-muted {
+    color: #999;
+}
+
+.small {
+    font-size: 14px;
+}
+
+.center { text-align: center; }
+.left   { text-align: left;   }
+.right  { text-align: right;  }
+
+/* FORMS -------------------------------------------------------------------- */
+
+label {
+    font-weight: 700;
+    color: #0070bb;
+    margin: 0.2em 0;
+    display: inline-block;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="url"],
+select,
+button {
+    font: inherit;
+    display: inline-block;
+    line-height: 1.4;
+    padding: 0.5em 1em;
+    margin: 0;
+    height: 2.4em;
+    vertical-align: top;
+    box-sizing: border-box;
+    border: 1px solid #0004;
+    border-radius: 0.25em;
+}
+
+button {
+    border: 1px solid #0001;
+    padding: 0.5em 2em;
+    background: #1f7dff;
+    cursor: pointer;
+    color: #FFF;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background: #156de9;
+    border-color: #0003;
+}
+
+button:active {
+    background: #0c5ac7;
+    border-color: #0006;
+}
+
+button:disabled {
+    background: #DDD;
+    text-shadow: 0 0 1px #0003;
+    cursor: default;
+    border-color: #0001;
+}

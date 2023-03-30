@@ -1,0 +1,139 @@
+import { expect } from "chai"
+import request    from "supertest"
+import jwt        from "jsonwebtoken"
+import { SERVER } from "./TestContext"
+import config     from "../../config"
+import EHIClient  from "./EHIClient"
+import patients   from "../../data/db"
+
+function getFirstPatientId() {
+    for (const id of patients.keys()) {
+        return id
+    }
+    throw new Error("No patients found")
+}
+
+const PATIENT_ID = getFirstPatientId()
+
+
+describe("Kick off", () => {
+
+    it ('requires auth', () => request(SERVER.baseUrl)
+        .post("/fhir/Patient/123/$ehi-export")
+        .expect(401, /Unauthorized! No authorization header provided in request/));
+    
+    it ('requires valid bearer token', () => request(SERVER.baseUrl)
+        .post("/fhir/Patient/123/$ehi-export")
+        .set("authorization", "Bearer xxxxx")
+        .expect(401, /Invalid token/));
+
+    it ('requires valid JWT bearer', () => request(SERVER.baseUrl)
+        .post("/fhir/Patient/123/$ehi-export")
+        .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
+        .expect(400, /Invalid token/));
+
+    it ('If no params are passed replies with 200 and link', async () => {
+        const result = await new EHIClient().kickOff("123")
+        expect(result.link).to.exist;
+        // expect(result.status).to.not.exist;
+        expect(result.response.status).to.equal(200)
+    })
+
+    it ('If params are passed replies with Content-Location header', async () => {
+        const result = await new EHIClient().kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        expect(result.link).to.not.exist;
+        expect(result.status).to.exist;
+    })
+})
+
+describe ("status", () => {
+    
+    it ('Replies with 404 and OperationOutcome for invalid job IDs', async () => {
+        const res = await new EHIClient().request(SERVER.baseUrl + "/jobs/123/status");
+        expect(res.status).to.equal(404);
+        expect((await res.json()).resourceType).to.equal("OperationOutcome");
+    })
+
+    it ('Can fetch manifest', async () => {
+        const client = new EHIClient()
+        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const manifest = await client.waitForExport(status!)
+        expect(manifest).to.be.instanceOf(Object)
+        expect(typeof manifest.transactionTime).to.equal("string")
+        expect(manifest.requiresAccessToken).to.equal(true)
+        expect(manifest.output).to.be.instanceOf(Array)
+        expect(manifest.error).to.be.instanceOf(Array)
+    })
+
+    it ('Replies properly while in progress', async () => {
+        const client = new EHIClient()
+        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const res2 = await client.request(status!);
+        expect(res2.status).to.equal(202);
+        expect(res2.headers.get("x-progress")).to.equal("awaiting-input");
+        expect(res2.headers.get("retry-after")).to.exist;
+    })
+})
+
+
+describe ("download", () => {
+    
+    it ('Replies with 404 and OperationOutcome for invalid job IDs', async () => {
+        const res = await new EHIClient().request(SERVER.baseUrl + "/jobs/123/download/resourceType");
+        expect(res.status).to.equal(404);
+        expect((await res.json()).resourceType).to.equal("OperationOutcome");
+    })
+
+    it ('Replies with 404 and OperationOutcome for invalid file name', async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const res = await client.request(`${SERVER.baseUrl}/jobs/${jobId}/download/whatever.ndjson`);
+        expect(res.status).to.equal(404);
+        expect((await res.json()).resourceType).to.equal("OperationOutcome");
+    })
+
+    it ('Replies properly with ndjson files', async () => {
+        const client = new EHIClient()
+        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const manifest = await client.waitForExport(status!)
+        expect(manifest).to.exist;
+        const url = manifest.output.find((x: any) => x.type === "Patient")!.url
+        const res3 = await client.request(url);
+        expect(res3.headers.get("content-type")).to.equal("application/fhir+ndjson");
+        expect(res3.headers.get("content-disposition")).to.equal("attachment");
+        const ndjson = await res3.text()
+        const lines = ndjson.trim().split("\n")
+        expect(lines.length).to.equal(1)
+        expect(() => lines.map(l => JSON.parse(l))).not.to.throw
+        expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
+    })
+})
+
+describe ("abort", () => {
+    
+    it ("Can abort after the export is started", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const result = await client.abort(jobId!)
+        expect(result.status).to.equal(202)
+    })
+
+    it ("Can abort after the export is complete", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        await client.waitForExport(status!)
+        const result = await client.abort(jobId!)
+        expect(result.status).to.equal(202)
+    })
+
+    it ("Multiple aborts cause 404 job not found errors", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        await client.waitForExport(status!)
+        const result = await client.abort(jobId!)
+        expect(result.status).to.equal(202)
+        const result2 = await client.abort(jobId!)
+        expect(result2.status).to.equal(404)
+    })
+
+})

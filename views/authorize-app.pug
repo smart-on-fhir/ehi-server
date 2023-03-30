@@ -1,0 +1,17 @@
+doctype html
+html(lang="en")
+    head
+        title SMART EHI Export Server - Authorize Export
+        link(rel="stylesheet", href="/style.css")
+    body
+        #main
+            h1.center Authorize Export?
+            hr
+            form(action="/auth/authorize")
+                each param, key in query
+                    input(type="hidden" name=key value=param)
+                br
+                .center
+                    button(type="submit" name="_auth_success" value="0") Deny
+                    | &nbsp;
+                    button(type="submit" name="_auth_success" value="1") Authorize
