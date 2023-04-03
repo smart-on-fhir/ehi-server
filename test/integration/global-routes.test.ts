@@ -19,11 +19,9 @@ describe("renders html pages", () => {
         .expect('Content-Type', /html/)
         .expect(200));
     
-    it ("/fhir/Patient/:id/$ehi-export/customize", () => request(SERVER.baseUrl)
-        .get("/fhir/Patient/:id/$ehi-export/customize")
-        .expect('Content-Type', /html/)
-        .expect(200));
-
+    it ("/jobs/:id/customize", () => request(SERVER.baseUrl)
+        .get("/jobs/abc/customize")
+        .expect(404)); // No "abc" job found
 })
 
 describe("Capability statement", () => {
