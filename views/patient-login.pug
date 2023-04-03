@@ -7,19 +7,32 @@ html(lang="en")
         #main
             h1.center Patient Login
             hr
-            form(action="/auth/authorize")
+            - const action = query.action || "/auth/authorize"
+            form(action=action autocomplete="off")
                 each param, key in query
                     input(type="hidden" name=key value=param)
                 br
                 label(for="_patient") Patient
-                select#_patient(name="_patient" style={ width: "100%"})
-                    each patient, index in patients
-                        - const prefix = patient.name[0]?.prefix?.[0]
-                        - const given  = patient.name[0]?.given?.[0]
-                        - const family = patient.name[0]?.family
-                        - const name = [prefix, given, family].filter(Boolean).join(" ")
-                        option(value=patient.id) #{name} (DOB: #{patient.birthDate})
-                p.text-muted Any patient can be used for demo purposes
+                if (query._patient)
+                    - const patient = patients.find(p => p.id === query._patient)
+                    - const prefix  = patient.name[0]?.prefix?.[0]
+                    - const given   = patient.name[0]?.given?.[0]
+                    - const family  = patient.name[0]?.family
+                    - const name    = [prefix, given, family].filter(Boolean).join(" ")
+                    input#_patient(name="_patient" type="hidden" value=patient.id)
+                    br
+                    span=name
+                    span.text-muted=` (DOB: ${patient.birthDate})`
+                    br
+                else 
+                    select#_patient(name="_patient" style={ width: "100%"})
+                        each patient, index in patients
+                            - const prefix = patient.name[0]?.prefix?.[0]
+                            - const given  = patient.name[0]?.given?.[0]
+                            - const family = patient.name[0]?.family
+                            - const name = [prefix, given, family].filter(Boolean).join(" ")
+                            option(value=patient.id) #{name} (DOB: #{patient.birthDate})
+                    p.text-muted Any patient can be used for demo purposes
                 br
                 label(for="_password") Password
                 input#_password(type="password" value="whatever" style={ width: "100%" } autocomplete="off")
