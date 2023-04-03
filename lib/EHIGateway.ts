@@ -119,8 +119,26 @@ export async function kickOff(req: Request, res: Response) {
 }
 
 export async function renderForm(req: Request, res: Response) {
+    
+    // FIXME: This is totally fake and only used for demo purposes! If _patient
+    // param is not provided show the patient picker to login. In reality we
+    // don't need this because the job already knows who the patient is.
+    if (!req.query._patient) {
+        const job = await ExportJob.byId(req.params.id)
+        const q = new URLSearchParams()
+        q.set("action", getRequestBaseURL(req) + req.url)
+        q.set("_patient", job.patientId)
+
+        // TODO: WHERE SHOULD THIS COME FROM???
+        q.set("redirect", "http://localhost:3000/")
+        // q.set("redirect", req.query.redirect + "")
+
+        return res.redirect(`/patient-login?${q}`)
+    }
+
     res.render("form", {
-        patient: req.params.id,
-        token  : req.query.token
+        patient : req.params.id,
+        redirect: req.query.redirect,
+        token   : req.query.token
     })
 }

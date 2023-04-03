@@ -15,8 +15,6 @@ interface ExportManifest {
 }
 
 
-
-
 /**
  * Ideally, we'd have a reference implementation of the "Provider side" that
  * shows a bit of the back-office workflow around handling requests including.
@@ -40,7 +38,7 @@ export default class ExportJob
 {
     readonly id: string;
 
-    protected patientId: string;
+    patientId: string;
 
     manifest: ExportManifest | null = null;
 
