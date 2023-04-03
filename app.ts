@@ -46,8 +46,8 @@ app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 // EHI: kick-off
 app.post("/fhir/Patient/:id/\\$ehi-export", validateToken(), asyncRouteWrap(Gateway.kickOff))
 
-// EHI: customize kick-off request
-app.get("/fhir/Patient/:id/\\$ehi-export/customize", Gateway.renderForm)
+// EHI: Render job customization form
+app.get("/jobs/:id/customize", Gateway.renderForm)
 
 // EHI: get job status
 app.get("/jobs/:id/status", validateToken(), asyncRouteWrap(Gateway.checkStatus))

@@ -107,7 +107,7 @@ export async function kickOff(req: Request, res: Response) {
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
 
     if (req.body?.resourceType !== "Parameters") {
-        res.header("Link", `${baseUrl}${req.originalUrl}/customize?token=${req.headers.authorization?.replace(/^\s*bearer\s+/i, "")}; rel="patient-interaction"`)
+        res.header("Link", `${baseUrl}/jobs/${job.id}/customize?token=${req.headers.authorization?.replace(/^\s*bearer\s+/i, "")}; rel="patient-interaction"`)
         res.status(202)
         res.json({ message: "Please follow the url in the link header to customize your export" })
     }
