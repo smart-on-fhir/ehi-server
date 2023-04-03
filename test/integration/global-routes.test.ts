@@ -41,3 +41,10 @@ describe("Capability statement", () => {
         .expect(400, `Unsupported value "xyz" in accept header`));
 
 })
+
+describe(".well-known/smart-configuration", () => {
+    it ('Replies with json', () => request(SERVER.baseUrl)
+        .get("/fhir/.well-known/smart-configuration")
+        .expect('Content-Type', /json/)
+        .expect(200));
+})

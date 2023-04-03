@@ -5,6 +5,7 @@ import crypto                                        from "crypto"
 import { Request }                                   from "express"
 import patients                                      from "../data/db"
 import config                                        from "../config"
+import { HttpError }                                 from "./errors"
 import { getRequestBaseURL, wait }                   from "."
 
 interface ExportManifest {
@@ -107,7 +108,7 @@ export default class ExportJob
             await instance.load()
             return instance
         } catch {
-            throw new Error("Export job not found! Perhaps it has already completed.")
+            throw new HttpError("Export job not found! Perhaps it has already completed.").status(404)
         }
     }
 

@@ -1,13 +1,14 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
-import cors             from "cors"
-import { AddressInfo }  from "net"
-import config           from "./config"
-import { HttpError }    from "./lib/errors"
-import patients         from "./data/db"
-import * as Gateway     from "./lib/EHIGateway"
-import AuthorizeHandler from "./lib/authorize"
-import TokenHandler     from "./lib/token"
-import getMetadata      from "./lib/metadata"
+import cors                    from "cors"
+import { AddressInfo }         from "net"
+import config                  from "./config"
+import { HttpError }           from "./lib/errors"
+import patients                from "./data/db"
+import * as Gateway            from "./lib/EHIGateway"
+import AuthorizeHandler        from "./lib/authorize"
+import TokenHandler            from "./lib/token"
+import getMetadata             from "./lib/metadata"
+import getWellKnownSmartConfig from "./lib/smart-configuration"
 import { asyncRouteWrap, getRequestBaseURL, validateToken } from "./lib"
 
 
@@ -40,6 +41,9 @@ app.get("/patient-login", (req, res) => {
     res.render("patient-login", { patients: list, query: req.query })
 })
 
+// SMART: WellKnown SMART Configuration
+app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
+
 // FHIR: CapabilityStatement
 app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 
@@ -47,7 +51,7 @@ app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 app.post("/fhir/Patient/:id/\\$ehi-export", validateToken(), asyncRouteWrap(Gateway.kickOff))
 
 // EHI: Render job customization form
-app.get("/jobs/:id/customize", Gateway.renderForm)
+app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
 // EHI: get job status
 app.get("/jobs/:id/status", validateToken(), asyncRouteWrap(Gateway.checkStatus))
