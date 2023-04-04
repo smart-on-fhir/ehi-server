@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.ts",
   "scripts": {
-    "start": "PORT=8888 ts-node --skipProject --transpile-only app.ts",
+    "start": "ts-node --skipProject --transpile-only app.ts",
     "start:watch": "nodemon -e ts -x 'npm run start'",
     "test": "nyc --reporter=lcov ts-mocha --exit -t 5000",
     "test:watch": "nodemon -e ts -x 'npm run test'"
