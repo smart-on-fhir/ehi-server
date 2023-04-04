@@ -4,6 +4,7 @@ import { readFile }                                  from "fs/promises"
 import { Request, Response }                         from "express"
 import config                                        from "../config"
 import ExportJob                                     from "./ExportManager"
+import { HttpError }                                 from "./errors"
 import { createOperationOutcome, getRequestBaseURL } from "."
 
 
@@ -15,24 +16,41 @@ export async function viewJob(req: Request, res: Response) {
     }
 }
 
+/**
+ * RPC-like interface for updating a job
+ * @param req 
+ * @param res 
+ */
 export async function updateJob(req: Request, res: Response) {
 
-    // The following actions should be supported:
-    // - Add attachments
-    // - Remove attachments
-    // - Approve
-    // - Reject
-
-    res.end("Not implemented")
+    const { action = "", params = [] } = req.body
+    
+    switch (action) {
+        case "addAttachments":
+            res.end(`Action "${action}" not implemented yet`)
+        break;
+        case "removeAttachments":
+            res.end(`Action "${action}" not implemented yet`)
+        break;
+        case "approve":
+            res.end(`Action "${action}" not implemented yet`)
+        break;
+        case "reject":
+            res.end(`Action "${action}" not implemented yet`)
+        break;
+        case "customize":
+            res.end(`Action "${action}" not implemented yet`)
+        break;
+        case "":
+            throw new HttpError("Missing action parameter in the POST body").status(400)
+        default:
+            throw new HttpError(`Invalid action parameter "${action}" in the POST body`).status(400)
+    }
 }
 
 export async function listJobs(req: Request, res: Response) {
-    const output = {
-        errors: [],
-        meta: {},
-        data: { jobs: [] as any[] }
-    };
-    const base = Path.join(__dirname, "../jobs")
+    const jobs: Omit<EHI.ExportJob, "manifest">[] = [];
+    const base = Path.join(__dirname, "../jobs");
     const items = readdirSync(base);
     for (const id of items) {
         if (statSync(Path.join(base, id)).isDirectory()) {
@@ -42,10 +60,11 @@ export async function listJobs(req: Request, res: Response) {
                     "utf8"
                 )
             );
-            output.data.jobs.push(json)
+            delete json.manifest
+            jobs.push(json)
         }
     }
-    res.json(output)
+    res.json(jobs)
 }
 
 export async function downloadFile(req: Request, res: Response) {
