@@ -161,6 +161,80 @@ declare namespace EHI {
         count?: number
     }
 
+    /**
+     * Can be:
+     * 
+     * - `awaiting-input` - The user needs to fill in the form.
+     * 
+     * - `in-review` - After the form is submitted successfully no more actions
+     *   are required by the user. Then the job switches to "in-review" status,
+     *   meaning that it is waiting for the admin to approve or reject the export.
+     * 
+     * - `requested` - After the export is approved by the admin and while the
+     *   data is being exported.
+     * 
+     * - `retrieved` - All the data transmitted to its destination.
+     * 
+     * - `aborted` - The admin or the patient aborted/canceled this export.
+     * 
+     * - `rejected` - The admin rejected this export.
+     * 
+     * 
+     * **Note** that jobs have certain lifetime. Once they expire they will be
+     * deleted within the next `config.jobCleanupMinutes` minutes:
+     * 
+     * - `awaiting-input` - Does not expire
+     * - `in-review`      - Expire after `config.jobMaxLifetimeMinutes`
+     * - `requested`      - Expire after `config.jobMaxLifetimeMinutes`
+     * - `retrieved`      - Expire after `config.jobMaxLifetimeMinutes`
+     * - `aborted`        - Expire immediately
+     * - `rejected`       - Expire immediately
+     */
+    type ExportJobStatus =  "awaiting-input" |
+                            "in-review" |
+                            "requested" |
+                            "retrieved" |
+                            "aborted"   |
+                            "rejected";
+
+    /**
+     * The JSON representation of an export job
+     */
+    interface ExportJob {
+        
+        /**
+         * Random 8 char hex job ID  
+         */
+        id: string
+
+        /**
+         * The ID of the exported patient
+         */
+        patientId: string
+
+        /**
+         * The bulk data export manifest if available. This will be null until
+         * the export is approved and started (until it enters "requested" state) 
+         */
+        manifest: ExportManifest | null
+
+        /**
+         * The job status
+         */
+        status: ExportJobStatus
+        
+        /**
+         * The JS timestamp showing when this job was created
+         */
+        createdAt: number
+
+        /**
+         * The JS timestamp showing when this job was completed, or `0` if it
+         * hasn't been completed yet
+         */
+        completedAt: number
+    }
+
 }
 
 export as namespace SMART

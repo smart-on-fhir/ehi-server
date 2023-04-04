@@ -43,7 +43,7 @@ export default class ExportJob
 
     manifest: ExportManifest | null = null;
 
-    status: "awaiting-input" | "in-review" | "requested" | "retrieved" | "aborted" | "rejected" = "awaiting-input";
+    status: EHI.ExportJobStatus = "awaiting-input";
 
     protected createdAt: number = 0;
 
@@ -86,7 +86,7 @@ export default class ExportJob
 
         let shouldDelete = false
 
-        if (job.status === "aborted") {
+        if (job.status === "aborted" || job.status === "rejected") {
             shouldDelete = true
         }
         else if (job.status === "retrieved" && now - job.completedAt > config.completedJobLifetimeMinutes * 60000) {
@@ -199,7 +199,7 @@ export default class ExportJob
         return this;
     }
 
-    public toJSON()
+    public toJSON(): EHI.ExportJob
     {
         return {
             id         : this.id,
