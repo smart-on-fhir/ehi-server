@@ -1,12 +1,13 @@
 import Path                                          from "path"
 import { existsSync, readdirSync, statSync, rmSync } from "fs"
-import { appendFile, mkdir, readFile, writeFile }    from "fs/promises"
 import crypto                                        from "crypto"
 import { Request }                                   from "express"
+import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/promises"
 import patients                                      from "../data/db"
 import config                                        from "../config"
 import { HttpError }                                 from "./errors"
 import { getRequestBaseURL, wait }                   from "."
+
 
 interface ExportManifest {
     transactionTime: string
@@ -48,6 +49,8 @@ export default class ExportJob
     protected createdAt: number = 0;
 
     protected completedAt: number = 0;
+
+    protected attachments: fhir4.Attachment[] = [];
 
     /**
      * @param patientId The ID of the exported patient
@@ -129,7 +132,44 @@ export default class ExportJob
      * Add results to a task (e.g., dragging a CSV file into the browser to
      * simulate the manual gathering of data from different underlying systems)
      */
-    public async addAttachment() {}
+    public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
+        const src = Path.join(__dirname, "..", attachment.path)
+        const dst = Path.join(__dirname, `../jobs/${this.id}/attachments`)
+        await mkdir(dst, { recursive: true });
+        await copyFile(src, Path.join(dst, attachment.filename));
+        this.attachments.push({
+            contentType: attachment.mimetype,
+            size: attachment.size,
+            url: `${baseUrl}/jobs/${this.id}/download/attachments/${attachment.filename}`
+        });
+        await this.save()
+        await unlink(src)
+    }
+
+    public async addAttachments(req: Request) {
+        const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
+        if (files.length) {
+            const baseUrl = getRequestBaseURL(req)
+            for (const file of files) {
+                await this.addAttachment(file, baseUrl)
+            }
+        }
+    }
+
+    public async removeAttachment(fileName: string) {
+        if (this.status !== "awaiting-input" && this.status !== "in-review") {
+            throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
+        }
+        
+        this.attachments = this.attachments.filter(x => x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
+        await this.save()
+    }
+
+    public async removeAttachments(fileNames: string[]) {
+        for (const fileName of fileNames) {
+            await this.removeAttachment(fileName)
+        }
+    }
 
     public async abort()
     {
@@ -151,8 +191,7 @@ export default class ExportJob
             error: [] as any[]
         };
 
-        for (const entry of json.entry!) {
-            const resource = entry.resource!
+        const addOutputEntry = async <T extends fhir4.Resource>(resource: T) => {
             const { resourceType } = resource
             const destination = Path.join(__dirname, "../jobs", this.id, resourceType + ".ndjson")
             await appendFile(destination, JSON.stringify(resource) + "\n")
@@ -167,17 +206,29 @@ export default class ExportJob
             } else {
                 fileEntry.count += 1;
             }
+        };
 
+        for (const entry of json.entry!) {
+            await addOutputEntry(entry.resource!)
             await wait(config.jobThrottle)
+        }
+
+        if (this.attachments.length) {
+            await addOutputEntry<fhir4.DocumentReference>({
+                resourceType: "DocumentReference",
+                status: "current",
+                subject: { reference: "Patient/" + this.patientId },
+                content: this.attachments.map(f => ({ attachment: f }))
+            })
         }
 
         this.completedAt = Date.now()
         this.manifest = manifest
         this.status = "retrieved"
-        this.save()
+        await this.save()
     }
 
-    protected async save()
+    async save()
     {
         if (!existsSync(Path.join(__dirname, `../jobs/${this.id}`))) {
             await mkdir(Path.join(__dirname, `../jobs/${this.id}`))
@@ -207,7 +258,8 @@ export default class ExportJob
             manifest   : this.manifest,
             status     : this.status,
             createdAt  : this.createdAt,
-            completedAt: this.completedAt
+            completedAt: this.completedAt,
+            attachments: this.attachments
         }
     }
 }

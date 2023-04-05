@@ -1,10 +1,11 @@
-import { expect } from "chai"
-import request    from "supertest"
-import jwt        from "jsonwebtoken"
-import { SERVER } from "./TestContext"
-import config     from "../../config"
-import EHIClient  from "./EHIClient"
-import patients   from "../../data/db"
+import { basename } from "path"
+import { expect }   from "chai"
+import request      from "supertest"
+import jwt          from "jsonwebtoken"
+import { SERVER }   from "./TestContext"
+import config       from "../../config"
+import EHIClient    from "./EHIClient"
+import patients     from "../../data/db"
 
 function getFirstPatientId() {
     for (const id of patients.keys()) {
@@ -105,6 +106,66 @@ describe ("download", () => {
         expect(lines.length).to.equal(1)
         expect(() => lines.map(l => JSON.parse(l))).not.to.throw
         expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
+    })
+
+    it ('Attachment files can be downloaded', async () => {
+        const client = new EHIClient()
+        
+        // Create export
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+
+        // Add files
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .field("action", "addAttachments")
+        .attach("attachments", "test/fixtures/img3.png")
+        .attach("attachments", "test/fixtures/img2.png")
+        .expect(200)
+
+        // Approve
+        await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
+
+        // Fetch the manifest
+        const manifest = await client.waitForExport(status!)
+
+        // console.log(manifest)
+        expect(manifest).to.exist;
+
+        // Fetch the DocumentReference
+        const docRefEntry = manifest.output.find(x => x.type == "DocumentReference")
+        expect(docRefEntry).to.exist;
+        const res = await client.request(docRefEntry!.url)
+        const txt = await res.text()
+        const lines = txt.trim().split(/\n/).filter(Boolean)
+        expect(lines.length).to.equal(1)
+        const docRef = JSON.parse(lines[0])
+
+        // console.log(docRef.content)
+        expect(docRef.content.length).to.equal(2)
+        docRef.content.forEach((f: any) => {
+            expect(f.attachment.url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
+        })
+    })
+
+    it ("Can remove attachments", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+        const { body: job } = await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .field("action", "addAttachments")
+        .attach("attachments", "test/fixtures/img3.png")
+        .attach("attachments", "test/fixtures/img2.png")
+        .expect(200)
+
+        const { body } = await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .send({ action: "removeAttachments", params: [ basename(job.attachments[0].url) ]})
+        .expect(200)
+        
+        // Verify that the job contains attachments
+        expect(body.attachments).to.be.an.instanceOf(Array)
+        expect(body.attachments.length).to.equal(1)
+        expect(body.attachments[0].url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
     })
 })
 

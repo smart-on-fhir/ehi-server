@@ -1,4 +1,6 @@
+import { expect } from "chai"
 import request    from "supertest"
+import EHIClient  from "./EHIClient"
 import { SERVER } from "./TestContext"
 
 
@@ -11,11 +13,98 @@ it ("GET /jobs/:id", () => request(SERVER.baseUrl)
     .get("/jobs/xyz")
     .expect(404, /Export job not found/));
 
-it ("POST /jobs/:id requires action parameter", () => request(SERVER.baseUrl)
-    .post("/jobs/xyz")
-    .expect(400, "Missing action parameter in the POST body"));
 
-it ("POST /jobs/:id rejects invalid action parameter", () => request(SERVER.baseUrl)
-    .post("/jobs/xyz")
-    .send({ action: "x" })
-    .expect(400, 'Invalid action parameter "x" in the POST body'));
+describe("Updating a job", () => {
+    
+    it ("Rejects on missing job", async () => {
+        await request(SERVER.baseUrl)
+        .post("/jobs/xyz")
+        .expect(404, /Export job not found/);
+    })
+
+    it ("requires action parameter", async () => {
+        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .expect(400, /Missing action parameter in the POST body/);
+    })
+
+    it ("POST /jobs/:id rejects invalid action parameter", async () => {
+        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .send({ action: "x" })
+        .expect(400, 'Invalid action parameter "x" in the POST body');
+    });
+
+    it ("POST /jobs/:id rejects invalid action parameter using multipart", async () => {
+        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .field("action", "x")
+        .expect(400, 'Invalid action parameter "x" in the POST body');
+    });
+
+    it ("Can approve jobs", async () => {
+        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .send({ action: "approve" })
+        .expect(200, /"status":"requested"/);
+    })
+
+    it ("Can reject jobs", async () => {
+        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .send({ action: "reject" })
+        .expect(200, /"status":"rejected"/)
+    })
+
+    it ("Can add attachments", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+        const { body } = await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .field("action", "addAttachments")
+        .attach("attachments", "test/fixtures/img3.png")
+        .attach("attachments", "test/fixtures/img2.png")
+        .expect(200)
+        
+        // Verify that the job contains attachments
+        expect(body.attachments).to.be.an.instanceOf(Array)
+        expect(body.attachments.length).to.equal(2)
+        for (const file of body.attachments) {
+            expect(file.url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
+        }
+    })
+
+    it ("Can download attachments", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+        const { body } = await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .field("action", "addAttachments")
+        .attach("attachments", "test/fixtures/img3.png")
+        .attach("attachments", "test/fixtures/img2.png")
+        .expect(200)
+
+        for (const file of body.attachments) {
+            const res = await client.request(file.url)
+            expect(res.status).to.equal(200)
+        }
+    })
+
+    it ("Cannot download missing attachments", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+        const res = await client.request(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/whatever`)
+        expect(res.status).to.equal(404)
+    })
+
+    it ("Cannot download attachments from missing jobs", async () => {
+        const client = new EHIClient()
+        const res = await client.request(`${SERVER.baseUrl}/jobs/abc/download/attachments/whatever`)
+        expect(res.status).to.equal(404)
+    })
+})

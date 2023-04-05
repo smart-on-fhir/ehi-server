@@ -22,27 +22,46 @@ export async function viewJob(req: Request, res: Response) {
  * @param res 
  */
 export async function updateJob(req: Request, res: Response) {
+    
+
+    try {
+        var job = await ExportJob.byId(req.params.id)
+    } catch (ex) {
+        return res.status(404).json(createOperationOutcome((ex as Error).message))
+    }
 
     const { action = "", params = [] } = req.body
     
     switch (action) {
         case "addAttachments":
-            res.end(`Action "${action}" not implemented yet`)
-        break;
+            const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
+            if (!files.length) {
+                throw new HttpError('The "addAttachments" action requires that one more files are upload via the "attachments" field').status(400)
+            }
+            await job.addAttachments(req)
+            return res.json(job)
+
         case "removeAttachments":
-            res.end(`Action "${action}" not implemented yet`)
-        break;
+            await job.removeAttachments(params)
+            return res.json(job)
+
         case "approve":
-            res.end(`Action "${action}" not implemented yet`)
-        break;
+            job.status = "requested"
+            await job.save()
+            job.kickOff(req); // DON"T WAIT FOR THIS!
+            return res.json(job);
+
         case "reject":
-            res.end(`Action "${action}" not implemented yet`)
-        break;
+            job.status = "rejected"
+            await job.save()
+            return res.json(job);
+
         case "customize":
-            res.end(`Action "${action}" not implemented yet`)
-        break;
+            return res.end(`Action "${action}" not implemented yet`)
+
         case "":
             throw new HttpError("Missing action parameter in the POST body").status(400)
+
         default:
             throw new HttpError(`Invalid action parameter "${action}" in the POST body`).status(400)
     }
@@ -83,6 +102,28 @@ export async function downloadFile(req: Request, res: Response) {
     res.sendFile(path, {
         headers: {
             "content-type": "application/fhir+ndjson",
+            "content-disposition": "attachment",
+            "connection": "close"
+        }
+    })
+}
+
+export async function downloadAttachment(req: Request, res: Response) {
+    const dir = Path.join(__dirname, "../jobs", req.params.id)
+
+    if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+        return res.status(404).json(createOperationOutcome("Export job not found"))
+    }
+
+    const path = Path.join(dir, "attachments", req.params.file)
+
+    if (!statSync(path, { throwIfNoEntry: false })?.isFile()) {
+        return res.status(404).json(createOperationOutcome("File not found"))
+    }
+
+    res.sendFile(path, {
+        headers: {
+            "connection": "close",
             "content-disposition": "attachment"
         }
     })

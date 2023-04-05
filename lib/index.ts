@@ -221,3 +221,7 @@ export function validateParam(container: any, name: string, validator?: ((value:
         }
     }
 }
+
+export function parseNdjson<T = unknown>(data: string): T[] {
+    return data.trim().split("\n").filter(Boolean).map(l => JSON.parse(l) as T)
+}

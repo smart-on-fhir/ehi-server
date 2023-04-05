@@ -233,6 +233,35 @@ declare namespace EHI {
          * hasn't been completed yet
          */
         completedAt: number
+
+        /**
+         * Array of additional attachments which should be made available via
+         * DocumentReference
+         */
+        attachments: fhir4.Attachment[]
+    }
+
+    interface Attachment {
+        
+        /**
+         * Mime type of the content, with charset etc.
+         */
+        contentType: string
+        
+        /**
+         * Data inline, base64ed
+         */
+        data?: string
+
+        /**
+         * Uri where the data can be found
+         */
+        url?: string
+
+        /**
+         * Number of bytes of content (if url provided)
+         */
+        size: number
     }
 
 }

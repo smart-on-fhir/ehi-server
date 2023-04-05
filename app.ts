@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
 import cors                    from "cors"
 import { AddressInfo }         from "net"
+import multer                  from "multer"
 import config                  from "./config"
 import { HttpError }           from "./lib/errors"
 import patients                from "./data/db"
@@ -12,7 +13,16 @@ import getWellKnownSmartConfig from "./lib/smart-configuration"
 import { asyncRouteWrap, getRequestBaseURL, validateToken } from "./lib"
 
 
+
 const app = express()
+
+const upload = multer({
+    dest: "uploads/",
+    limits: {
+        files: 20,
+        fileSize: 1024 * 1024 * 10 // 10MB
+    }
+})
 
 app.use(cors({ origin: true, credentials: true }))
 app.set('view engine', 'pug');
@@ -21,6 +31,7 @@ app.use(express.static("./static"));
 app.use(urlencoded({ extended: false, limit: "64kb" }));
 app.use(json());
 
+const requireAuth = validateToken()
 
 
 // SMART: get authorization code
@@ -48,19 +59,22 @@ app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
 app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 
 // EHI: kick-off
-app.post("/fhir/Patient/:id/\\$ehi-export", validateToken(), asyncRouteWrap(Gateway.kickOff))
+app.post("/fhir/Patient/:id/\\$ehi-export", requireAuth, asyncRouteWrap(Gateway.kickOff))
 
 // EHI: Render job customization form
 app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
 // EHI: get job status
-app.get("/jobs/:id/status", validateToken(), asyncRouteWrap(Gateway.checkStatus))
+app.get("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.checkStatus))
 
 // EHI: abort/delete job
-app.delete("/jobs/:id/status", validateToken(), asyncRouteWrap(Gateway.abort))
+app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 
-// EHI: download file
-app.get("/jobs/:id/download/:resourceType", validateToken(), asyncRouteWrap(Gateway.downloadFile))
+// EHI: download resource file
+app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
+
+// EHI: download attachment file
+app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
 
 // API: browse jobs
 app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
@@ -69,7 +83,7 @@ app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
 app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
 
 // API: update job
-app.post("/jobs/:id", asyncRouteWrap(Gateway.updateJob))
+app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.updateJob))
 
 // Home page
 app.get("/", (req, res) => res.render("index", { baseUrl: getRequestBaseURL(req) }))
