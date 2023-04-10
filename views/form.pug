@@ -1,3 +1,15 @@
+- const information            = {};
+- information.medicalRecord    = "Medical Record";
+- information.visits           = "Clinic Visits";
+- information.dischargeSummary = "Discharge Summary";
+- information.labs             = "Lab Reports";
+- information.operative        = "Operative Reports";
+- information.pathology        = "Pathology Reports";
+- information.radiation        = "Radiation Reports";
+- information.radiology        = "Radiology Reports";
+- information.photographs      = "Photographs";
+- information.billing          = "Billing Records";
+
 doctype html
 html(lang="en")
     head
@@ -5,79 +17,138 @@ html(lang="en")
         link(rel="stylesheet", href="/style.css")
     body
         #main
-            h1 Customize Your Export
-            hr
-            p.
-                This EHI Servers supports returning a subset of a patient's EHI
-                dataset. Please specify the content filters that should be
-                associated with this EHI Request.
-            p.text-muted.small.
-                When the link is accessed, the EHI Server MAY authenticate the
-                user using the same method as was used to request an access
-                token prior to displaying or accepting the form.
-            p.text-muted.small.
-                After the form is submitted, the EHI Server SHOULD redirect the
-                user to a url provided by the app at registration time.
-            p.text-muted.small.
-                Regardless of whether a patient interaction link is provided,
-                the EHI Server SHALL return a Content-Location header to
-                retrieve the status and results of the request as described in
-                the Async Pattern.
+            
+            form(enctype="application/json" autocomplete="off")
+                h2.center INFORMATION TO BE RELEASED
+                p.center.text-muted Please check all that apply, and specify dates
+                br
+                table
+                    thead
+                        tr
+                            th(style="min-width:12em")
+                            th From
+                            th To
+                            th(style="width:100%") Notes
+                    tbody
+                        each name, key in information
+                            tr(data-key=key data-name=name)
+                                td
+                                    label
+                                        input(type="checkbox")
+                                        |  #{name}
+                                td.small: input(type="date" disabled name="from").from
+                                td.small: input(type="date" disabled name="to").to
+                                td.small: input(type="text" disabled name="notes").full-width
 
-            form(enctype="application/json")
-                h3 What encounters to include?
-                p
+                        tr(data-key="other" data-name="Other")
+                            td
+                                label
+                                    input(type="checkbox")
+                                    |  Other
+                            td.small: input(type="date" disabled name="from").from
+                            td.small: input(type="date" disabled name="to").to
+                            td.small: input(type="text" disabled name="notes" placeholder="Please specify").full-width
+                br
+                hr
+                
+                h2.center AUTHORIZATION FOR RELEASE OF PROTECTED OR PRIVILEGED HEALTH INFORMATION
+                p.center.text-muted Please indicate if you give permission to release the following information if present in your record
+                br
+                div.checkbox-row
                     label
-                        input(type="radio" name="since" autocomplete="off" value="1")
-                        |  Last Year
-                p
+                        input(type="checkbox" name="hiv" title="HIV test results")
+                        |  HIV test results
+                div.checkbox-row
                     label
-                        input(type="radio" name="since" autocomplete="off" value="5")
-                        |  Last 5 Years
-                p
+                        input(type="checkbox" name="alcoholAndDrug" title="Alcohol and Drug Abuse Records")
+                        |  Alcohol and Drug Abuse Records
+                div.checkbox-row
                     label
-                        input(type="radio" name="since" autocomplete="off" value="0")
-                        |  All Data
+                        input(type="checkbox" name="mentalHealth" title="Details of Mental Health Diagnosis and/or Treatment")
+                        |  Details of Mental Health Diagnosis and/or Treatment
+                div.checkbox-row
+                    label
+                        input(type="checkbox" name="confidential" title="Confidential Communications with a Licensed Social Worker")
+                        |  Confidential Communications with a Licensed Social Worker
+                div.checkbox-row
+                    label
+                        input(type="checkbox" name="domesticViolence" title="Details of Domestic Violence Victims Counseling")
+                        |  Details of Domestic Violence Victims Counseling
+                div.checkbox-row
+                    label
+                        input(type="checkbox" name="sexualAssault" title="Details of Sexual Assault Counseling")
+                        |  Details of Sexual Assault Counseling
+                div.checkbox-row
+                    label.nowrap(style="flex:0")
+                        input(type="checkbox" name="genetic" title="Genetic Screening")
+                        span  Genetic Screening&nbsp;
+                    input.inline.small(type="text" placeholder="Type of tests" style="flex:1")
+                div.checkbox-row
+                    label.nowrap(style="flex:0")
+                        input(type="checkbox" name="other" title="Other")
+                        |  Other(s):&nbsp;
+                    input.inline.small(type="text" placeholder="Please List" style="flex:1")
+                br
                 hr
                 br
                 .center
-                    button(disabled) Export
+                    button Export
 
+        script(src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ==" crossorigin="anonymous" referrerpolicy="no-referrer")
         script.
-            (function() {
+            jQuery(function($) {
                 
                 const form = document.forms[0];
+                const now = new Date();
 
-                function check() {
-                    const data = new FormData(form)
-                    document.querySelector("button").disabled = !data.has("since")
-                }
-                
-                document.querySelectorAll('input[type="radio"]').forEach(input => {
-                    input.addEventListener("change", check, { once: true })
-                })
-
-                check()
-
-                form.addEventListener("submit", e => {
+                function onSubmit(e) {
                     e.preventDefault()
-                    const since = parseInt(document.querySelector('input[name="since"]:checked').value, 10)
-                    document.querySelector("button").disabled = true
-                    fetch("../$ehi-export", {
+
+                    const body = {
+                        action       : "customize",
+                        payload: {
+                            information  : {},
+                            authorization: {}
+                        }
+                    };
+
+                    $("tr[data-key]").each((i, tr) => {
+                        const $tr = $(tr)
+                        const key = $tr.data("key")
+                        const name = $tr.data("name")
+                        body.payload.information[key] = {
+                            name,
+                            enabled: $('[type="checkbox"]', tr).prop("checked"),
+                            from   : $('[name="from"]', tr).prop("valueAsDate")?.toISOString(),
+                            to     : $('[name="to"]', tr).prop("valueAsDate")?.toISOString(),
+                            notes  : $('[name="notes"]', tr).val()
+                        }
+                    })
+
+                    $('.checkbox-row input[type="checkbox"]').each((i, cb) => {
+                        const $cb  = $(cb)
+                        const name = $cb.attr("name")
+                        const rec  = body.payload.authorization[name] = { name: $cb.attr("title"), value: false }
+                        if ($cb.prop("checked")) {
+                            if (name === "other" || name === "genetic") {
+                                rec.value = $cb.closest(".checkbox-row").find('input[type="text"]').val()
+                            } else {
+                                rec.value = true
+                            }
+                        }
+                    })
+
+                    console.log(body)
+
+                    //- const since = parseInt(document.querySelector('input[name="since"]:checked').value, 10)
+                    //- document.querySelector("button").disabled = true
+                    fetch("/jobs/#{jobId}", {
                         method: "POST",
                         headers: {
                             "content-type" : "application/json",
                             "authorization": "Bearer #{token}"
                         },
-                        body: JSON.stringify({
-                            resourceType: "Parameters",
-                            parameter: [
-                                {
-                                    name: "since",
-                                    valueInteger: since
-                                }
-                            ]
-                        })
+                        body: JSON.stringify(body)
                     }).then(() => {
                         if ("#{redirect}") {
                             const url = new URL("#{redirect}")
@@ -93,5 +164,20 @@ html(lang="en")
                             window.location.href = url.href
                         }
                     })
+                }
+
+                $("form").on("submit", onSubmit);
+
+                $('table input[type="checkbox"]').on("change", e => {
+                    $(e.target).closest("tr").find('input[type="date"], input[type="text"]').prop("disabled", !e.target.checked)
                 })
-            })();
+
+                // Initially all date pickers have max equal to today
+                $('table input[type="date"]').attr("max", `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
+                
+                // Any from date picker must have its max set to the corresponding to picker
+                $('table input.to').on("change", e => {
+                    const d = e.target.valueAsDate
+                    $(e.target).closest("tr").find('input.from').attr("max", `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`)
+                });
+            });

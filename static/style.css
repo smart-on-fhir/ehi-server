@@ -23,13 +23,20 @@ p {
     color: #999;
 }
 
-.small {
-    font-size: 14px;
-}
+
 
 .center { text-align: center; }
 .left   { text-align: left;   }
 .right  { text-align: right;  }
+
+.wrap {
+    white-space: unset;
+    flex-wrap: wrap;
+}
+.nowrap {
+    white-space: nowrap;
+    flex-wrap: nowrap;
+}
 
 /* FORMS -------------------------------------------------------------------- */
 
@@ -43,6 +50,7 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="url"],
+input[type="date"],
 select,
 button {
     font: inherit;
@@ -51,10 +59,32 @@ button {
     padding: 0.5em 1em;
     margin: 0;
     height: 2.4em;
-    vertical-align: top;
+    vertical-align: baseline;
     box-sizing: border-box;
     border: 1px solid #0004;
     border-radius: 0.25em;
+}
+
+input[type="text"].full-width,
+input[type="password"].full-width,
+input[type="url"].full-width,
+input[type="date"].full-width,
+select.full-width,
+button.full-width {
+    width: 100%;
+}
+
+input[type="date"] {
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+
+input[type="text"].inline {
+    padding: 0em 0.5em;
+    margin: 0;
+    height: auto;
+    vertical-align: baseline;
+    min-width: 0;
 }
 
 button {
@@ -81,4 +111,17 @@ button:disabled {
     text-shadow: 0 0 1px #0003;
     cursor: default;
     border-color: #0001;
+}
+
+.checkbox-row {
+    margin-bottom: 0.2em;
+    display: flex;
+}
+
+.small {
+    font-size: 14px !important;
+}
+
+:disabled {
+    cursor: not-allowed;
 }
