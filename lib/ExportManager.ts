@@ -92,11 +92,11 @@ export default class ExportJob
         if (job.status === "aborted" || job.status === "rejected") {
             shouldDelete = true
         }
-        else if (job.status === "retrieved" && now - job.completedAt > config.completedJobLifetimeMinutes * 60000) {
-            shouldDelete = true
+        else if (job.status === "retrieved") {
+            shouldDelete = now - job.completedAt > config.completedJobLifetimeMinutes * 60000
         }
-        else if (job.status !== "in-review" && now - job.createdAt > config.jobMaxLifetimeMinutes * 60000) {
-            shouldDelete = true
+        else if (job.status === "in-review" || job.status === "awaiting-input") {
+            shouldDelete = now - job.createdAt > config.jobMaxLifetimeMinutes * 60000
         }
 
         if (shouldDelete) {
