@@ -238,7 +238,49 @@ declare namespace EHI {
          * Array of additional attachments which should be made available via
          * DocumentReference
          */
-        attachments: fhir4.Attachment[]
+        attachments: fhir4.Attachment[],
+
+        parameters?: ExportJobInformationParameters,
+
+        authorizations?: ExportJobAuthorizations
+    }
+
+    interface ExportJobInformationParameter {
+        name   : string
+        enabled: boolean
+        notes ?: string
+        from  ?: string
+        to    ?: string
+    }
+
+    interface ExportJobInformationParameters {
+        medicalRecord   ?: ExportJobInformationParameter,
+        visits          ?: ExportJobInformationParameter,
+        dischargeSummary?: ExportJobInformationParameter,
+        labs            ?: ExportJobInformationParameter,
+        operative       ?: ExportJobInformationParameter,
+        pathology       ?: ExportJobInformationParameter,
+        radiation       ?: ExportJobInformationParameter,
+        radiology       ?: ExportJobInformationParameter,
+        photographs     ?: ExportJobInformationParameter,
+        billing         ?: ExportJobInformationParameter,
+        other           ?: ExportJobInformationParameter
+    }
+
+    interface ExportJobAuthorization {
+        name : string
+        value: boolean | string
+    }
+
+    interface ExportJobAuthorizations {
+        hiv             ?: ExportJobAuthorization,
+        alcoholAndDrug  ?: ExportJobAuthorization,
+        mentalHealth    ?: ExportJobAuthorization,
+        confidential    ?: ExportJobAuthorization,
+        domesticViolence?: ExportJobAuthorization,
+        sexualAssault   ?: ExportJobAuthorization,
+        genetic         ?: ExportJobAuthorization,
+        other           ?: ExportJobAuthorization
     }
 
     interface Attachment {

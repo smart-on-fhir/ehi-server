@@ -21,29 +21,50 @@ export default class EHIClient
         return fetch(url, options)
     }
 
-    public async kickOff(patientId: string, params?: fhir2.ParametersParameter[]) {
-        const options: RequestInit = {
-            method: "POST",
-            headers: { "content-type": "application/json" }
-        };
-
-        if (params) {
-            options.body = JSON.stringify({
-                resourceType: "Parameters",
-                parameter: params
-            })
-        }
-        
-        const res = await this.request(`${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`, options);
+    public async kickOff(patientId: string) {
+        const res = await this.request(`${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`, { method: "POST" });
         const status = res.headers.get('content-location')
-        const jobId = status ? status.match(/\/jobs\/([^/]+)\/status/)?.[1] : null
-
+        const jobId = status!.match(/\/jobs\/([^/]+)\/status/)?.[1]!
         return {
             link: res.headers.get('link'),
             response: res,
             status,
             jobId
         }
+    }
+
+    public async update(
+        jobId: string,
+        payload: {
+            action: "addAttachments" | "removeAttachments" | "approve" | "reject" | "customize",
+            [key: string]: any
+        }
+    ): Promise<Response>
+    {
+        return this.request(`${SERVER.baseUrl}/jobs/${jobId}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+    }
+
+    public async customize(
+        jobId: string,
+        payload: {
+            parameters    ?: EHI.ExportJobInformationParameters,
+            authorizations?: EHI.ExportJobAuthorizations
+        } = {
+            parameters    : { labs: { name: "Labs", enabled: true } },
+            authorizations: { hiv : { name: "HIV" , value  : true } }
+        }
+    ): Promise<Response>
+    {
+        return this.update(jobId, { action: "customize", payload });
+    }
+
+    public async approve(jobId: string): Promise<Response>
+    {
+        return this.update(jobId, { action: "approve" });
     }
 
     public async waitForExport(statusLocation: string): Promise<EHI.ExportManifest> {

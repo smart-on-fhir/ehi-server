@@ -57,6 +57,12 @@ export async function updateJob(req: Request, res: Response) {
             return res.json(job);
 
         case "customize":
+            job.setParameters(req.body.payload.parameters)
+            job.setAuthorizations(req.body.payload.authorizations)
+            if (job.needsPatientInteraction()) {
+                job.status = "in-review"
+            }
+            await job.save()
             return res.end(`Action "${action}" not implemented yet`)
 
         case "":
@@ -80,6 +86,8 @@ export async function listJobs(req: Request, res: Response) {
                 )
             );
             delete json.manifest
+            delete json.parameters
+            delete json.authorizations
             jobs.push(json)
         }
     }
@@ -165,17 +173,13 @@ export async function kickOff(req: Request, res: Response) {
 
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
-
-    if (req.body?.resourceType !== "Parameters") {
-        res.header("Link", `${baseUrl}/jobs/${job.id}/customize?token=${req.headers.authorization?.replace(/^\s*bearer\s+/i, "")}; rel="patient-interaction"`)
-        res.status(202)
-        res.json({ message: "Please follow the url in the link header to customize your export" })
-    }
-    else {
-        job.kickOff(req)
-        res.status(202)
-        res.end()
-    }
+    
+    const url = new URL(`${baseUrl}/jobs/${job.id}/customize`)
+    // url.searchParams.set("token", String(req.headers.authorization).replace(/^\s*bearer\s+/i, ""))
+    url.searchParams.set("redirect", String(req.headers.origin))
+    res.header("Link", `${url.href}; rel="patient-interaction"`)
+    res.status(202)
+    res.json({ message: "Please follow the url in the link header to customize your export" })
 }
 
 export async function renderForm(req: Request, res: Response) {
@@ -191,8 +195,8 @@ export async function renderForm(req: Request, res: Response) {
         q.set("_patient", job.patientId)
 
         // TODO: WHERE SHOULD THIS COME FROM???
-        q.set("redirect", "http://localhost:3000/")
-        // q.set("redirect", req.query.redirect + "")
+        // q.set("redirect", "http://localhost:3000/")
+        q.set("redirect", req.query.redirect + "" || "http://localhost:3000/")
 
         return res.redirect(`/patient-login?${q}`)
     }

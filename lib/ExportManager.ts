@@ -51,6 +51,11 @@ export default class ExportJob
     protected completedAt: number = 0;
 
     protected attachments: fhir4.Attachment[] = [];
+    
+    protected parameters: EHI.ExportJobInformationParameters = {};
+
+    protected authorizations: EHI.ExportJobAuthorizations = {};
+
 
     /**
      * @param patientId The ID of the exported patient
@@ -253,14 +258,51 @@ export default class ExportJob
     public toJSON(): EHI.ExportJob
     {
         return {
-            id         : this.id,
-            patientId  : this.patientId,
-            manifest   : this.manifest,
-            status     : this.status,
-            createdAt  : this.createdAt,
-            completedAt: this.completedAt,
-            attachments: this.attachments
+            id            : this.id,
+            patientId     : this.patientId,
+            manifest      : this.manifest,
+            status        : this.status,
+            createdAt     : this.createdAt,
+            completedAt   : this.completedAt,
+            attachments   : this.attachments,
+            parameters    : this.parameters,
+            authorizations: this.authorizations
         }
+    }
+
+    /**
+     * Currently returns true only if the form was filled in by providing at
+     * least one parameter and at least one authorization.
+     */
+    public needsPatientInteraction() {
+        let hasParams = false;
+        let hasAuth   = false;
+
+        for (const name in this.parameters) {
+            if (this.parameters[name as keyof typeof this.parameters]?.enabled) {
+                hasParams = true;
+                break;
+            }
+        }
+
+        for (const name in this.authorizations) {
+            if (this.authorizations[name as keyof typeof this.authorizations]?.value) {
+                hasAuth = true;
+                break;
+            }
+        }
+
+        return hasParams && hasAuth
+    }
+
+    public setParameters(parameters: EHI.ExportJobInformationParameters) {
+        this.parameters = parameters
+        return this
+    }
+
+    public setAuthorizations(authorizations: EHI.ExportJobAuthorizations) {
+        this.authorizations = authorizations
+        return this
     }
 }
 

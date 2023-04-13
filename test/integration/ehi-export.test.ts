@@ -2,9 +2,9 @@ import { basename } from "path"
 import { expect }   from "chai"
 import request      from "supertest"
 import jwt          from "jsonwebtoken"
+import EHIClient    from "./EHIClient"
 import { SERVER }   from "./TestContext"
 import config       from "../../config"
-import EHIClient    from "./EHIClient"
 import patients     from "../../data/db"
 
 function getFirstPatientId() {
@@ -36,13 +36,8 @@ describe("Kick off", () => {
     it ('If no params are passed replies with 202 and link', async () => {
         const result = await new EHIClient().kickOff("123")
         expect(result.link).to.exist;
-        expect(result.response.status).to.equal(202)
-    })
-
-    it ('If params are passed replies with Content-Location header', async () => {
-        const result = await new EHIClient().kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
-        expect(result.link).to.not.exist;
         expect(result.status).to.exist;
+        expect(result.response.status).to.equal(202)
     })
 })
 
@@ -56,7 +51,9 @@ describe ("status", () => {
 
     it ('Can fetch manifest', async () => {
         const client = new EHIClient()
-        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.be.instanceOf(Object)
         expect(typeof manifest.transactionTime).to.equal("string")
@@ -65,12 +62,33 @@ describe ("status", () => {
         expect(manifest.error).to.be.instanceOf(Array)
     })
 
-    it ('Replies properly while in progress', async () => {
+    it ('Replies properly while awaiting input', async () => {
         const client = new EHIClient()
-        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { status } = await client.kickOff(PATIENT_ID)
         const res2 = await client.request(status!);
         expect(res2.status).to.equal(202);
         expect(res2.headers.get("x-progress")).to.equal("awaiting-input");
+        expect(res2.headers.get("retry-after")).to.exist;
+    })
+
+    it ('Replies properly while in awaiting approval', async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        const res2 = await client.request(status!);
+        expect(res2.status).to.equal(202);
+        expect(res2.headers.get("x-progress")).to.equal("in-review");
+        expect(res2.headers.get("retry-after")).to.exist;
+    })
+
+    it ('Replies properly while in progress', async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
+        const res2 = await client.request(status!);
+        expect(res2.status).to.equal(202);
+        expect(res2.headers.get("x-progress")).to.equal("requested");
         expect(res2.headers.get("retry-after")).to.exist;
     })
 })
@@ -86,7 +104,8 @@ describe ("download", () => {
 
     it ('Replies with 404 and OperationOutcome for invalid file name', async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
         const res = await client.request(`${SERVER.baseUrl}/jobs/${jobId}/download/whatever.ndjson`);
         expect(res.status).to.equal(404);
         expect((await res.json()).resourceType).to.equal("OperationOutcome");
@@ -94,7 +113,9 @@ describe ("download", () => {
 
     it ('Replies properly with ndjson files', async () => {
         const client = new EHIClient()
-        const { status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.exist;
         const url = manifest.output.find((x: any) => x.type === "Patient")!.url
@@ -173,14 +194,16 @@ describe ("abort", () => {
     
     it ("Can abort after the export is started", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { jobId } = await client.kickOff(PATIENT_ID)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
     })
 
     it ("Can abort after the export is complete", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
@@ -188,7 +211,9 @@ describe ("abort", () => {
 
     it ("Multiple aborts cause 404 job not found errors", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID, [{ name: "since", valueInteger: 5 }])
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)

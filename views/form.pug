@@ -107,8 +107,8 @@ html(lang="en")
                     const body = {
                         action       : "customize",
                         payload: {
-                            information  : {},
-                            authorization: {}
+                            parameters   : {},
+                            authorizations: {}
                         }
                     };
 
@@ -116,7 +116,7 @@ html(lang="en")
                         const $tr = $(tr)
                         const key = $tr.data("key")
                         const name = $tr.data("name")
-                        body.payload.information[key] = {
+                        body.payload.parameters[key] = {
                             name,
                             enabled: $('[type="checkbox"]', tr).prop("checked"),
                             from   : $('[name="from"]', tr).prop("valueAsDate")?.toISOString(),
@@ -128,7 +128,7 @@ html(lang="en")
                     $('.checkbox-row input[type="checkbox"]').each((i, cb) => {
                         const $cb  = $(cb)
                         const name = $cb.attr("name")
-                        const rec  = body.payload.authorization[name] = { name: $cb.attr("title"), value: false }
+                        const rec  = body.payload.authorizations[name] = { name: $cb.attr("title"), value: false }
                         if ($cb.prop("checked")) {
                             if (name === "other" || name === "genetic") {
                                 rec.value = $cb.closest(".checkbox-row").find('input[type="text"]').val()
@@ -138,7 +138,7 @@ html(lang="en")
                         }
                     })
 
-                    console.log(body)
+                    //- console.log(body)
 
                     //- const since = parseInt(document.querySelector('input[name="since"]:checked').value, 10)
                     //- document.querySelector("button").disabled = true
@@ -146,7 +146,7 @@ html(lang="en")
                         method: "POST",
                         headers: {
                             "content-type" : "application/json",
-                            "authorization": "Bearer #{token}"
+                            //- "authorization": "Bearer #{token}"
                         },
                         body: JSON.stringify(body)
                     }).then(() => {
