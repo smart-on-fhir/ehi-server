@@ -48,7 +48,7 @@ export async function updateJob(req: Request, res: Response) {
         case "approve":
             job.status = "requested"
             await job.save()
-            job.kickOff(req); // DON"T WAIT FOR THIS!
+            job.kickOff(req); // DON'T WAIT FOR THIS!
             return res.json(job);
 
         case "reject":
