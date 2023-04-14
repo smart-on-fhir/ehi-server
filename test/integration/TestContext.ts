@@ -1,7 +1,9 @@
-import { expect } from "chai";
+import path        from "path";
+import { expect }  from "chai";
 import "mocha"
 import { AddressInfo, Server } from "net"
 import server                  from "../../app"
+import { readdirSync, rmSync, statSync } from "fs";
 
 
 let testServer: Server | null
@@ -38,7 +40,18 @@ export const SERVER = {
 
 before(async () => { await SERVER.start() });
 
-after(async () => { await SERVER.stop() });
+after(async () => { await SERVER.stop(); cleanup(); });
+
+function cleanup() {
+    const base  = path.join(__dirname, "../../test-jobs")
+    const items = readdirSync(base);
+    for (const id of items) {
+        const dir = path.join(base, id)
+        if (statSync(dir).isDirectory()) {
+            rmSync(dir, { force: true, recursive: true })
+        }
+    }
+}
 
 export async function authorize({
     patient   = "0b8a6ef0-07c8-48ca-804d-1e64f6e44b95",

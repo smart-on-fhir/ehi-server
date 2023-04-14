@@ -75,7 +75,7 @@ export async function updateJob(req: Request, res: Response) {
 
 export async function listJobs(req: Request, res: Response) {
     const jobs: Omit<EHI.ExportJob, "manifest">[] = [];
-    const base = Path.join(__dirname, "../jobs");
+    const base = config.jobsDir;
     const items = readdirSync(base);
     for (const id of items) {
         if (statSync(Path.join(base, id)).isDirectory()) {
@@ -95,7 +95,7 @@ export async function listJobs(req: Request, res: Response) {
 }
 
 export async function downloadFile(req: Request, res: Response) {
-    const dir = Path.join(__dirname, "../jobs", req.params.id)
+    const dir = Path.join(config.jobsDir, req.params.id)
 
     if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
         return res.status(404).json(createOperationOutcome("Export job not found"))
@@ -117,7 +117,7 @@ export async function downloadFile(req: Request, res: Response) {
 }
 
 export async function downloadAttachment(req: Request, res: Response) {
-    const dir = Path.join(__dirname, "../jobs", req.params.id)
+    const dir = Path.join(config.jobsDir, req.params.id)
 
     if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
         return res.status(404).json(createOperationOutcome("Export job not found"))

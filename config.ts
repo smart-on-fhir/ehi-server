@@ -1,3 +1,5 @@
+import Path from "path"
+
 const { env } = process
 
 function uInt(x: any, defaultValue = 0) {
@@ -42,14 +44,16 @@ export default {
     supportedAlgorithms: ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"],
 
     // Keep un-approved jobs for how long (minutes since creation)?
-    jobMaxLifetimeMinutes: uInt(env.JOB_MAX_LIFETIME_MINUTES, env.NODE_ENV === "test" ? 2 : 5),
+    jobMaxLifetimeMinutes: uInt(env.JOB_MAX_LIFETIME_MINUTES, 5),
 
     // Keep completed jobs for how long (minutes since completion)?
-    completedJobLifetimeMinutes: uInt(env.COMPLETED_JOB_LIFETIME_MINUTES, env.NODE_ENV === "test" ? 2 : 5),
+    completedJobLifetimeMinutes: uInt(env.COMPLETED_JOB_LIFETIME_MINUTES, 5),
 
     // Check for old jobs once every ? minutes
-    jobCleanupMinutes: uInt(env.JOB_CLEANUP_MINUTES, env.NODE_ENV === "test" ? 1 : 5),
+    jobCleanupMinutes: uInt(env.JOB_CLEANUP_MINUTES, 5),
 
     // MS to wait after appending each resource to its ndjson file
-    jobThrottle: uInt(env.JOB_THROTTLE, 0)
+    jobThrottle: uInt(env.JOB_THROTTLE, 0),
+
+    jobsDir: Path.join(__dirname, env.NODE_ENV === "test" ? "test-jobs/" : "jobs/")
 }

@@ -46,6 +46,8 @@ export default class ExportJob
 
     status: EHI.ExportJobStatus = "awaiting-input";
 
+    protected readonly path: string;
+
     protected createdAt: number = 0;
 
     protected completedAt: number = 0;
@@ -69,11 +71,13 @@ export default class ExportJob
 
     public static async destroy(id: string)
     {
-        if (!existsSync(Path.join(__dirname, "../jobs", id))) {
+        const path = Path.join(config.jobsDir, id)
+
+        if (!existsSync(path)) {
             throw new Error("Export job not found! Perhaps it has already completed.")
         }
         try {
-            rmSync(Path.join(__dirname, "../jobs/", id), { force: true, recursive: true })
+            rmSync(path, { force: true, recursive: true })
         } catch (ex) {
             console.error(ex)
             throw new Error("Unable to abort job with id '${id}'.")
@@ -131,6 +135,7 @@ export default class ExportJob
         this.id = _id || crypto.randomBytes(8).toString("hex")
         this.createdAt = Date.now()
         this.patientId = patientId
+        this.path      = Path.join(config.jobsDir, this.id)
     }
 
     /**
@@ -139,7 +144,7 @@ export default class ExportJob
      */
     public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
         const src = Path.join(__dirname, "..", attachment.path)
-        const dst = Path.join(__dirname, `../jobs/${this.id}/attachments`)
+        const dst = Path.join(this.path, "attachments")
         await mkdir(dst, { recursive: true });
         await copyFile(src, Path.join(dst, attachment.filename));
         this.attachments.push({
@@ -198,7 +203,7 @@ export default class ExportJob
 
         const addOutputEntry = async <T extends fhir4.Resource>(resource: T) => {
             const { resourceType } = resource
-            const destination = Path.join(__dirname, "../jobs", this.id, resourceType + ".ndjson")
+            const destination = Path.join(this.path, resourceType + ".ndjson")
             await appendFile(destination, JSON.stringify(resource) + "\n")
 
             let fileEntry = manifest.output.find(x => x.type === resourceType)
@@ -235,12 +240,12 @@ export default class ExportJob
 
     async save()
     {
-        if (!existsSync(Path.join(__dirname, `../jobs/${this.id}`))) {
-            await mkdir(Path.join(__dirname, `../jobs/${this.id}`))
+        if (!existsSync(this.path)) {
+            await mkdir(this.path)
         }
         
         await writeFile(
-            Path.join(__dirname, `../jobs/${this.id}/job.json`),
+            Path.join(this.path, `job.json`),
             JSON.stringify(this, null, 4),
             "utf8"
         );
@@ -249,7 +254,7 @@ export default class ExportJob
 
     protected async load()
     {
-        const path = Path.join(__dirname, "../jobs", this.id, "job.json")
+        const path = Path.join(this.path, "job.json")
         const json = JSON.parse(await readFile(path, "utf8"));
         Object.assign(this, json)
         return this;
