@@ -201,7 +201,7 @@ export async function renderForm(req: Request, res: Response) {
 
         // TODO: WHERE SHOULD THIS COME FROM???
         // q.set("redirect", "http://localhost:3000/")
-        q.set("redirect", req.query.redirect + "" || "http://localhost:3000/")
+        q.set("redirect", String(req.query.redirect || "") || "http://localhost:3000/")
 
         return res.redirect(`/patient-login?${q}`)
     }
@@ -210,6 +210,7 @@ export async function renderForm(req: Request, res: Response) {
         jobId   : req.params.id,
         patient : req.query._patient,
         redirect: req.query.redirect,
-        token   : req.query.token
+        token   : req.query.token,
+        job
     })
 }

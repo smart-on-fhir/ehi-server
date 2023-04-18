@@ -54,9 +54,30 @@ export default class ExportJob
 
     protected attachments: fhir4.Attachment[] = [];
     
-    protected parameters: EHI.ExportJobInformationParameters = {};
+    protected parameters: EHI.ExportJobInformationParameters = {
+        medicalRecord    : { enabled: false, name: "Medical Record"    },
+        visits           : { enabled: false, name: "Clinic Visits"     },
+        dischargeSummary : { enabled: false, name: "Discharge Summary" },
+        labs             : { enabled: false, name: "Lab Reports"       },
+        operative        : { enabled: false, name: "Operative Reports" },
+        pathology        : { enabled: false, name: "Pathology Reports" },
+        radiation        : { enabled: false, name: "Radiation Reports" },
+        radiology        : { enabled: false, name: "Radiology Reports" },
+        photographs      : { enabled: false, name: "Photographs"       },
+        billing          : { enabled: false, name: "Billing Records"   },
+        other            : { enabled: false, name: "Other"             }
+    };
 
-    protected authorizations: EHI.ExportJobAuthorizations = {};
+    protected authorizations: EHI.ExportJobAuthorizations = {
+        hiv             : { value: false, name: "HIV test results" },
+        alcoholAndDrug  : { value: false, name: "Alcohol and Drug Abuse Records" },
+        mentalHealth    : { value: false, name: "Details of Mental Health Diagnosis and/or Treatment" },
+        confidential    : { value: false, name: "Confidential Communications with a Licensed Social Worker" },
+        domesticViolence: { value: false, name: "Details of Domestic Violence Victims Counseling" },
+        sexualAssault   : { value: false, name: "Details of Sexual Assault Counseling" },
+        genetic         : { value: ""   , name: "Genetic Screening" },
+        other           : { value: ""   , name: "Other(s)" }
+    };
 
 
     /**
