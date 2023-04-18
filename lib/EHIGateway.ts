@@ -74,7 +74,9 @@ export async function updateJob(req: Request, res: Response) {
 }
 
 export async function listJobs(req: Request, res: Response) {
-    const jobs: Omit<EHI.ExportJob, "manifest">[] = [];
+    // const { sort = "date:desc" } = req.query;
+    // const [ sortBy, sortDir ] = String(sort || "").trim().split(":");
+    const jobs: Omit<EHI.ExportJob, "manifest" | "parameters" | "authorizations">[] = [];
     const base = config.jobsDir;
     const items = readdirSync(base);
     for (const id of items) {
@@ -91,6 +93,9 @@ export async function listJobs(req: Request, res: Response) {
             jobs.push(json)
         }
     }
+
+    jobs.sort((a, b) => a.completedAt - b.createdAt)
+
     res.json(jobs)
 }
 
