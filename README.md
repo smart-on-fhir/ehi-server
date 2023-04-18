@@ -1,19 +1,25 @@
 # ehi-server
 
+- [POST /fhir/Patient/:id/$ehi-export](#kick-off) - Start new export
+- [GET /fhir/Patient/:id/$ehi-export/customize](#customize-export) - Render export customization form
 
-## Kick-off - `POST /fhir/Patient/:id/$ehi-export`
+## Kick-off
 ---
 Starts new export job.
-#### Request
-- Headers
-  - `authorization` - Requires valid bearer token
-  - `content-type` - expects (but does not require) json mime type. If Parameters
-    resource is not provided replies with `Link` response header which the client
-    should follow.
-- Body
-  - JSON FHIR Parameters resource
-  - None - we should then follow the `Link` header to build those Parameters
-#### Response
+### Request
+- expects json mime type unless no POST body is sent 
+- Requires valid bearer token
+- If Parameters resource is not sent in the body, a Link header to the customization form should be returned.
+
+Example:
+```http
+POST /fhir/Patient/:id/$ehi-export
+authorization: Bearer ...
+content-type: application/json
+```
+
+### Response
+- If the export started successfully returns 202
 - Status
   - `202 Accepted` - if the export has been started
   - `200 OK`       - If we require further params
@@ -26,7 +32,7 @@ Starts new export job.
 
 
 
-## Customize Export - `GET /fhir/Patient/:id/$ehi-export/customize`
+## Customize Export
 ---
 Render HTML form to customize a kick-off request. When the form is submitted it
 builds a `Parameters` resource and sends it via new POST request to the kick-off
