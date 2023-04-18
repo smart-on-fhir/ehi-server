@@ -1,15 +1,4 @@
-- const information            = {};
-- information.medicalRecord    = "Medical Record";
-- information.visits           = "Clinic Visits";
-- information.dischargeSummary = "Discharge Summary";
-- information.labs             = "Lab Reports";
-- information.operative        = "Operative Reports";
-- information.pathology        = "Pathology Reports";
-- information.radiation        = "Radiation Reports";
-- information.radiology        = "Radiology Reports";
-- information.photographs      = "Photographs";
-- information.billing          = "Billing Records";
-
+- const format = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 doctype html
 html(lang="en")
     head
@@ -30,24 +19,14 @@ html(lang="en")
                             th To
                             th(style="width:100%") Notes
                     tbody
-                        each name, key in information
-                            tr(data-key=key data-name=name)
-                                td
-                                    label
-                                        input(type="checkbox")
-                                        |  #{name}
-                                td.small: input(type="date" disabled name="from").from
-                                td.small: input(type="date" disabled name="to").to
-                                td.small: input(type="text" disabled name="notes").full-width
-
-                        tr(data-key="other" data-name="Other")
-                            td
-                                label
-                                    input(type="checkbox")
-                                    |  Other
-                            td.small: input(type="date" disabled name="from").from
-                            td.small: input(type="date" disabled name="to").to
-                            td.small: input(type="text" disabled name="notes" placeholder="Please specify").full-width
+                        each parameter, key in job.parameters
+                            tr(data-key=key data-name=parameter.name)
+                                td: label
+                                    input(type="checkbox" checked=parameter.enabled)
+                                    |  #{parameter.name}
+                                td.small: input(type="date" disabled=!parameter.enabled name="from"  value=parameter.from ? format(new Date(parameter.from)) : undefined).from
+                                td.small: input(type="date" disabled=!parameter.enabled name="to"    value=parameter.from ? format(new Date(parameter.to  )) : undefined).to
+                                td.small: input(type="text" disabled=!parameter.enabled name="notes" value=parameter.notes).full-width
                 br
                 hr
                 
@@ -56,43 +35,44 @@ html(lang="en")
                 br
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="hiv" title="HIV test results")
-                        |  HIV test results
+                        input(type="checkbox" name="hiv" title=job.authorizations.hiv.name checked=!!job.authorizations.hiv.value)
+                        |  #{job.authorizations.hiv.name}
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="alcoholAndDrug" title="Alcohol and Drug Abuse Records")
-                        |  Alcohol and Drug Abuse Records
+                        input(
+                            type="checkbox" name="alcoholAndDrug" title=job.authorizations.alcoholAndDrug.name checked=!!job.authorizations.alcoholAndDrug.value)
+                        |  #{job.authorizations.alcoholAndDrug.name}
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="mentalHealth" title="Details of Mental Health Diagnosis and/or Treatment")
-                        |  Details of Mental Health Diagnosis and/or Treatment
+                        input(type="checkbox" name="mentalHealth" title=job.authorizations.mentalHealth.name checked=!!job.authorizations.mentalHealth.value)
+                        |  #{job.authorizations.mentalHealth.name}
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="confidential" title="Confidential Communications with a Licensed Social Worker")
-                        |  Confidential Communications with a Licensed Social Worker
+                        input(type="checkbox" name="confidential" title=job.authorizations.confidential.name checked=!!job.authorizations.confidential.value)
+                        |  #{job.authorizations.confidential.name}
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="domesticViolence" title="Details of Domestic Violence Victims Counseling")
-                        |  Details of Domestic Violence Victims Counseling
+                        input(type="checkbox" name="domesticViolence" title=job.authorizations.domesticViolence.name checked=!!job.authorizations.domesticViolence.value)
+                        |  #{job.authorizations.domesticViolence.name}
                 div.checkbox-row
                     label
-                        input(type="checkbox" name="sexualAssault" title="Details of Sexual Assault Counseling")
-                        |  Details of Sexual Assault Counseling
-                div.checkbox-row
+                        input(type="checkbox" name="sexualAssault" title=job.authorizations.sexualAssault.name checked=!!job.authorizations.sexualAssault.value)
+                        |  #{job.authorizations.sexualAssault.name}
+                div.checkbox-row.check-text
                     label.nowrap(style="flex:0")
-                        input(type="checkbox" name="genetic" title="Genetic Screening")
-                        span  Genetic Screening&nbsp;
-                    input.inline.small(type="text" placeholder="Type of tests" style="flex:1")
-                div.checkbox-row
+                        input(type="checkbox" name="genetic" title=job.authorizations.genetic.name checked=!!job.authorizations.genetic.value)
+                        span  #{job.authorizations.genetic.name}&nbsp;
+                    input.inline.small(type="text" placeholder="Type of tests" style="flex:1" disabled=!job.authorizations.genetic.value value=job.authorizations.genetic.value || "")
+                div.checkbox-row.check-text
                     label.nowrap(style="flex:0")
-                        input(type="checkbox" name="other" title="Other")
-                        |  Other(s):&nbsp;
-                    input.inline.small(type="text" placeholder="Please List" style="flex:1")
+                        input(type="checkbox" name="other" title=job.authorizations.other.name checked=!!job.authorizations.other.value)
+                        |  #{job.authorizations.other.name}:&nbsp;
+                    input.inline.small(type="text" placeholder="Please List" style="flex:1" disabled=!job.authorizations.other.value value=job.authorizations.other.value || "")
                 br
                 hr
                 br
                 .center
-                    button Export
+                    button(type="submit" autofocus) Export
 
         script(src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ==" crossorigin="anonymous" referrerpolicy="no-referrer")
         script.
@@ -105,7 +85,7 @@ html(lang="en")
                     e.preventDefault()
 
                     const body = {
-                        action       : "customize",
+                        action: "customize",
                         payload: {
                             parameters   : {},
                             authorizations: {}
@@ -179,5 +159,9 @@ html(lang="en")
                 $('table input.to').on("change", e => {
                     const d = e.target.valueAsDate
                     $(e.target).closest("tr").find('input.from').attr("max", `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`)
+                });
+
+                $('.check-text input[type="checkbox"]').on("change", e => {
+                    $(e.target).closest(".check-text").find('input[type="text"]').prop("disabled", !e.target.checked)
                 });
             });
