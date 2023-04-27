@@ -169,6 +169,7 @@ export default class ExportJob
         await mkdir(dst, { recursive: true });
         await copyFile(src, Path.join(dst, attachment.filename));
         this.attachments.push({
+            title: attachment.originalname,
             contentType: attachment.mimetype,
             size: attachment.size,
             url: `${baseUrl}/jobs/${this.id}/download/attachments/${attachment.filename}`
@@ -192,7 +193,7 @@ export default class ExportJob
             throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
         }
         
-        this.attachments = this.attachments.filter(x => x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
+        this.attachments = this.attachments.filter(x => !x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
         await this.save()
     }
 
