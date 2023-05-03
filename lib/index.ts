@@ -225,3 +225,11 @@ export function validateParam(container: any, name: string, validator?: ((value:
 export function parseNdjson<T = unknown>(data: string): T[] {
     return data.trim().split("\n").filter(Boolean).map(l => JSON.parse(l) as T)
 }
+
+export function getPrefixedFilePath(destination: string, fileName: string) {
+    let dst = Path.join(destination, fileName), counter = 0;
+    while (statSync(dst, { throwIfNoEntry: false })?.isFile()) {
+        dst = Path.join(destination, ++counter + "." + fileName)
+    }
+    return dst
+}

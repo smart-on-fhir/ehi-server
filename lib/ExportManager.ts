@@ -1,4 +1,4 @@
-import Path                                          from "path"
+import Path, { basename }                                          from "path"
 import { existsSync, readdirSync, statSync, rmSync } from "fs"
 import crypto                                        from "crypto"
 import { Request }                                   from "express"
@@ -6,7 +6,7 @@ import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/pro
 import patients                                      from "../data/db"
 import config                                        from "../config"
 import { HttpError }                                 from "./errors"
-import { getRequestBaseURL, wait }                   from "."
+import { getPrefixedFilePath, getRequestBaseURL, wait } from "."
 
 
 interface ExportManifest {
@@ -46,7 +46,7 @@ export default class ExportJob
 
     status: EHI.ExportJobStatus = "awaiting-input";
 
-    protected readonly path: string;
+    readonly path: string;
 
     protected createdAt: number = 0;
 
@@ -166,13 +166,15 @@ export default class ExportJob
     public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
         const src = Path.join(__dirname, "..", attachment.path)
         const dst = Path.join(this.path, "attachments")
+        const path = getPrefixedFilePath(dst, attachment.originalname)
+        const filename = basename(path)
         await mkdir(dst, { recursive: true });
-        await copyFile(src, Path.join(dst, attachment.filename));
+        await copyFile(src, path);
         this.attachments.push({
-            title: attachment.originalname,
+            title: filename,
             contentType: attachment.mimetype,
             size: attachment.size,
-            url: `${baseUrl}/jobs/${this.id}/download/attachments/${attachment.filename}`
+            url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
         });
         await this.save()
         await unlink(src)

@@ -2,6 +2,7 @@ import Path                                          from "path"
 import { readdirSync, statSync }                     from "fs"
 import { readFile }                                  from "fs/promises"
 import { Request, Response }                         from "express"
+import archiver                                      from "archiver"
 import config                                        from "../config"
 import ExportJob                                     from "./ExportManager"
 import { HttpError }                                 from "./errors"
@@ -213,4 +214,26 @@ export async function renderForm(req: Request, res: Response) {
         token   : req.query.token,
         job
     })
+}
+export async function downloadArchive(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    const archive = archiver('zip', { zlib: { level: 9 }});
+
+    const date = new Date(job.manifest!.transactionTime)
+    const filename = `EHI Export ${date.toDateString()}.zip`
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    archive.pipe(res);
+
+    const items = readdirSync(job.path);
+    for (const name of items) {
+        const path = Path.join(job.path, name)
+        if (name.endsWith(".ndjson") && statSync(path).isFile()) {
+            archive.file(path, { name });
+        }
+        archive.directory(Path.join(job.path, "attachments"), "attachments");
+    }
+
+    archive.finalize();
 }
