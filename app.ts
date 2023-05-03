@@ -19,7 +19,7 @@ const app = express()
 const upload = multer({
     dest: "uploads/",
     limits: {
-        files: 20,
+        files: 5,
         fileSize: 1024 * 1024 * 10 // 10MB
     }
 })

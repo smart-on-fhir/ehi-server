@@ -161,6 +161,12 @@ html(lang="en")
                     $(e.target).closest("tr").find('input.from').attr("max", `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`)
                 });
 
+                // Any to date picker must have its min set to the corresponding from picker
+                $('table input.from').on("change", e => {
+                    const d = e.target.valueAsDate
+                    $(e.target).closest("tr").find('input.to').attr("min", `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`)
+                });
+
                 $('.check-text input[type="checkbox"]').on("change", e => {
                     $(e.target).closest(".check-text").find('input[type="text"]').prop("disabled", !e.target.checked)
                 });

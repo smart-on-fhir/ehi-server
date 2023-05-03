@@ -63,7 +63,7 @@ export async function updateJob(req: Request, res: Response) {
                 job.status = "in-review"
             }
             await job.save()
-            return res.end(`Action "${action}" not implemented yet`)
+            return res.json(job)
 
         case "":
             throw new HttpError("Missing action parameter in the POST body").status(400)
