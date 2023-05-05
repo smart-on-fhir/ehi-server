@@ -322,8 +322,8 @@ export default class ExportJob
         };
 
         // Create a function add every single resource
-        const addOutputEntry = async <T extends fhir4.Resource>(resource: T) => {
-            if (this.shouldExportResource(resource)) {
+        const addOutputEntry = async <T extends fhir4.Resource>(resource: T, force = false) => {
+            if (force || this.shouldExportResource(resource)) {
                 const { resourceType } = resource
                 const destination = Path.join(this.path, resourceType + ".ndjson")
                 await appendFile(destination, JSON.stringify(resource) + "\n")
@@ -353,7 +353,7 @@ export default class ExportJob
                 status: "current",
                 subject: { reference: "Patient/" + this.patientId },
                 content: this.attachments.map(f => ({ attachment: f }))
-            })
+            }, true)
         }
 
         this.completedAt = Date.now()
