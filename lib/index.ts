@@ -233,3 +233,7 @@ export function getPrefixedFilePath(destination: string, fileName: string) {
     }
     return dst
 }
+
+export function getPath(obj: any, path = "") {
+    return path.split(".").reduce((out, key) => out ? out[key] : undefined, obj)
+}

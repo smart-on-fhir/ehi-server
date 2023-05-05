@@ -1,12 +1,29 @@
-import Path, { basename }                                          from "path"
-import { existsSync, readdirSync, statSync, rmSync } from "fs"
-import crypto                                        from "crypto"
-import { Request }                                   from "express"
-import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/promises"
-import patients                                      from "../data/db"
-import config                                        from "../config"
-import { HttpError }                                 from "./errors"
-import { getPrefixedFilePath, getRequestBaseURL, wait } from "."
+import Path, { basename } from "path"
+import crypto             from "crypto"
+import { Request }        from "express"
+import patients           from "../data/db"
+import config             from "../config"
+import { HttpError }      from "./errors"
+import {
+    existsSync,
+    readdirSync,
+    statSync,
+    rmSync
+} from "fs"
+import {
+    appendFile,
+    copyFile,
+    mkdir,
+    readFile,
+    unlink,
+    writeFile
+} from "fs/promises"
+import {
+    getPath,
+    getPrefixedFilePath,
+    getRequestBaseURL,
+    wait
+} from "."
 
 
 interface ExportManifest {
@@ -78,7 +95,6 @@ export default class ExportJob
         genetic         : { value: ""   , name: "Genetic Screening" },
         other           : { value: ""   , name: "Other(s)" }
     };
-
 
     /**
      * @param patientId The ID of the exported patient
@@ -211,13 +227,93 @@ export default class ExportJob
         return await this.save()
     }
 
+    protected shouldExportResource(resource: fhir4.Resource): boolean
+    {
+        function isBefore(path: string, d: string) {
+            return new Date(getPath(resource, path) || 0) <= new Date(d)
+        }
+
+        function isAfter(path: string, d: string) {
+            return new Date(getPath(resource, path) || 0) >= new Date(d)
+        }
+
+        function check(param: EHI.ExportJobInformationParameter | undefined, fromPath: string, toPath: string) {
+            const { enabled, from, to } = param || {}
+            if (!enabled) {
+                return false
+            }
+
+            if (from && !isAfter(fromPath, from)) {
+                return false
+            }
+
+            if (to && !isBefore(toPath, to)) {
+                return false
+            }
+            
+            return true
+        }
+        
+        switch (resource.resourceType) {
+
+            case "Patient":
+            case "Practitioner":
+            case "Organization":
+                return true;
+
+            case "Encounter":
+                return check(this.parameters.visits, "period.start", "period.end")
+            case "Procedure":
+                return check(this.parameters.visits, "performedPeriod.start", "performedPeriod.end")
+            case "Claim":
+                return check(this.parameters.billing, "billablePeriod.start", "billablePeriod.end")
+            case "ExplanationOfBenefit":
+                return check(this.parameters.billing, "billablePeriod.start", "billablePeriod.end")
+
+            case "DiagnosticReport": // Any DiagnosticReports but labs are opt out
+                {
+                    const isLab = (resource as fhir4.DiagnosticReport).category?.some(
+                        c => c.coding?.some(x => (
+                            x.system === "http://terminology.hl7.org/CodeSystem/v2-0074" &&
+                            x.code === "LAB"
+                        )));
+
+                    if (!isLab) {
+                        return true
+                    }
+
+                    return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
+                }
+
+            case "Observation": // Any Observations but labs are opt out
+                {
+                    const isLab = (resource as fhir4.Observation).category?.some(
+                        c => c.coding?.some(x => (
+                            x.system === "http://terminology.hl7.org/CodeSystem/observation-category" &&
+                            x.code === "laboratory"
+                        )));
+                    
+                    if (!isLab) {
+                        return true
+                    }
+
+                    return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
+                }
+            
+            // Include everything else if "medicalRecord" is on
+            default:
+                return !!this.parameters.medicalRecord?.enabled;
+        }
+    }
+
     public async kickOff(req: Request)
     {
-        const path    = patients.get(this.patientId)!.file
-        const data    = await readFile(path, "utf8")
-        const json    = JSON.parse(data) as fhir4.Bundle
-        const baseUrl = getRequestBaseURL(req);
+        const baseUrl       = getRequestBaseURL(req)
+        const patientPath   = patients.get(this.patientId)!.file
+        const patientData   = await readFile(patientPath, "utf8")
+        const patientBundle = JSON.parse(patientData) as fhir4.Bundle
 
+        // Start with empty manifest
         const manifest = {
             transactionTime: new Date(this.createdAt).toISOString(),
             requiresAccessToken: true,
@@ -225,24 +321,28 @@ export default class ExportJob
             error: [] as any[]
         };
 
+        // Create a function add every single resource
         const addOutputEntry = async <T extends fhir4.Resource>(resource: T) => {
-            const { resourceType } = resource
-            const destination = Path.join(this.path, resourceType + ".ndjson")
-            await appendFile(destination, JSON.stringify(resource) + "\n")
+            if (this.shouldExportResource(resource)) {
+                const { resourceType } = resource
+                const destination = Path.join(this.path, resourceType + ".ndjson")
+                await appendFile(destination, JSON.stringify(resource) + "\n")
 
-            let fileEntry = manifest.output.find(x => x.type === resourceType)
-            if (!fileEntry) {
-                manifest.output.push({
-                    type : resourceType,
-                    url  : `${baseUrl}/jobs/${this.id}/download/${resourceType}`,
-                    count: 1
-                })
-            } else {
-                fileEntry.count += 1;
+                let fileEntry = manifest.output.find(x => x.type === resourceType)
+                if (!fileEntry) {
+                    manifest.output.push({
+                        type : resourceType,
+                        url  : `${baseUrl}/jobs/${this.id}/download/${resourceType}`,
+                        count: 1
+                    })
+                } else {
+                    fileEntry.count += 1;
+                }
             }
         };
 
-        for (const entry of json.entry!) {
+        // Try adding every resource from the transaction bundle
+        for (const entry of patientBundle.entry!) {
             await addOutputEntry(entry.resource!)
             await wait(config.jobThrottle)
         }
