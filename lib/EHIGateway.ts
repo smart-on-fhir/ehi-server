@@ -215,6 +215,7 @@ export async function renderForm(req: Request, res: Response) {
         job
     })
 }
+
 export async function downloadArchive(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     const archive = archiver('zip', { zlib: { level: 9 }});

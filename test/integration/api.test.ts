@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import request    from "supertest"
 import EHIClient  from "./EHIClient"
-import { SERVER } from "./TestContext"
+import { FIRST_PATIENT_ID, SERVER } from "./TestContext"
 
 
 it ("GET /jobs", () => request(SERVER.baseUrl)
@@ -23,14 +23,14 @@ describe("Updating a job", () => {
     })
 
     it ("requires action parameter", async () => {
-        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .expect(400, /Missing action parameter in the POST body/);
     })
 
     it ("POST /jobs/:id rejects invalid action parameter", async () => {
-        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .send({ action: "x" })
@@ -38,7 +38,7 @@ describe("Updating a job", () => {
     });
 
     it ("POST /jobs/:id rejects invalid action parameter using multipart", async () => {
-        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .field("action", "x")
@@ -46,7 +46,7 @@ describe("Updating a job", () => {
     });
 
     it ("Can approve jobs", async () => {
-        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .send({ action: "approve" })
@@ -54,7 +54,7 @@ describe("Updating a job", () => {
     })
 
     it ("Can reject jobs", async () => {
-        const { jobId } = await new EHIClient().kickOff("fake-patient-id")
+        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .send({ action: "reject" })
@@ -63,7 +63,7 @@ describe("Updating a job", () => {
 
     it ("Can add attachments", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
         const { body } = await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .field("action", "addAttachments")
@@ -81,7 +81,7 @@ describe("Updating a job", () => {
 
     it ("Can download attachments", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
         const { body } = await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .field("action", "addAttachments")
@@ -97,7 +97,7 @@ describe("Updating a job", () => {
 
     it ("Cannot download missing attachments", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
         const res = await client.request(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/whatever`)
         expect(res.status).to.equal(404)
     })

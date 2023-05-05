@@ -4,6 +4,7 @@ import "mocha"
 import { AddressInfo, Server } from "net"
 import server                  from "../../app"
 import { readdirSync, rmSync, statSync } from "fs";
+import patients                          from "../../data/db"
 
 
 let testServer: Server | null
@@ -38,6 +39,8 @@ export const SERVER = {
     }
 };
 
+export const FIRST_PATIENT_ID = getFirstPatientId();
+
 before(async () => { await SERVER.start() });
 
 after(async () => { await SERVER.stop(); cleanup(); });
@@ -53,8 +56,15 @@ function cleanup() {
     }
 }
 
+export function getFirstPatientId() {
+    for (const id of patients.keys()) {
+        return id
+    }
+    throw new Error("No patients found")
+}
+
 export async function authorize({
-    patient   = "0b8a6ef0-07c8-48ca-804d-1e64f6e44b95",
+    patient   = FIRST_PATIENT_ID,
     client_id = "test_client_id",
     scope     = "patient/$ehi-export",
     aud       = SERVER.baseUrl + "/fhir",
