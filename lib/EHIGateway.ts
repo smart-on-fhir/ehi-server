@@ -174,16 +174,10 @@ export async function checkStatus(req: Request, res: Response) {
 
 export async function kickOff(req: Request, res: Response) {
     const baseUrl = getRequestBaseURL(req);
-
     const job = await ExportJob.create(req.params.id)
-
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
-    
-    const url = new URL(`${baseUrl}/jobs/${job.id}/customize`)
-    // url.searchParams.set("token", String(req.headers.authorization).replace(/^\s*bearer\s+/i, ""))
-    url.searchParams.set("redirect", String(req.headers.origin))
-    res.header("Link", `${url.href}; rel="patient-interaction"`)
+    res.header("Link", `${baseUrl}/jobs/${job.id}/customize; rel="patient-interaction"`)
     res.status(202)
     res.json({ message: "Please follow the url in the link header to customize your export" })
 }
