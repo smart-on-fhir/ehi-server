@@ -85,7 +85,7 @@ app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
 // API: update job
 app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.updateJob))
 
-// API: Admin downloads all as zip
+// API: download all as zip
 app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // Home page

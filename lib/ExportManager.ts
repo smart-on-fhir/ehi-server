@@ -108,11 +108,13 @@ export default class ExportJob
 
     public static async destroy(id: string)
     {
-        const path = Path.join(config.jobsDir, id)
+        const job = await ExportJob.byId(id)
+        return job.destroy()
+    }
 
-        if (!existsSync(path)) {
-            throw new Error("Export job not found! Perhaps it has already completed.")
-        }
+    public async destroy()
+    {
+        const path = Path.join(config.jobsDir, this.id)
         try {
             rmSync(path, { force: true, recursive: true })
         } catch (ex) {

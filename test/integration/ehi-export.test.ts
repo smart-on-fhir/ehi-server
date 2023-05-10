@@ -199,7 +199,7 @@ describe ("abort", () => {
         expect(result.status).to.equal(202)
     })
 
-    it ("Can abort after the export is complete", async () => {
+    it ("Can abort after the export is completed", async () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
@@ -207,6 +207,12 @@ describe ("abort", () => {
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
+    })
+
+    it ("Abort rejects for missing jobs", async () => {
+        const client = new EHIClient()
+        const result = await client.abort("x")
+        expect(result.status).to.equal(404)
     })
 
     it ("Multiple aborts cause 404 job not found errors", async () => {

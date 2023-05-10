@@ -144,14 +144,9 @@ export async function downloadAttachment(req: Request, res: Response) {
 }
 
 export async function abort(req: Request, res: Response) {
-    try {
-        var job = await ExportJob.byId(req.params.id)
-    } catch (ex) {
-        return res.status(404).json(createOperationOutcome((ex as Error).message))
-    }
-
+    const job = await ExportJob.byId(req.params.id)
     await job.abort()
-    await ExportJob.destroy(job.id)
+    await job.destroy()
     res.status(202).json(createOperationOutcome("Export aborted and deleted"))
 }
 
