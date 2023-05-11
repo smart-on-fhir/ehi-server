@@ -1,9 +1,9 @@
 import { expect } from "chai"
 import { basename, join } from "path"
-import config from "../../../config"
-import { getPrefixedFilePath, validateParam } from "../../../lib"
-import { OAuthError } from "../../../lib/errors"
-import ExportJob, { check } from "../../../lib/ExportManager"
+import config from "../../config"
+import { getPrefixedFilePath, validateParam } from "../../lib"
+import { OAuthError } from "../../lib/errors"
+import ExportJob, { check } from "../../lib/ExportManager"
 
 describe("lib", () => {
     describe("validateParam", () => {
