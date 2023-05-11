@@ -60,9 +60,7 @@ export async function updateJob(req: Request, res: Response) {
         case "customize":
             job.setParameters(req.body.payload.parameters)
             job.setAuthorizations(req.body.payload.authorizations)
-            if (job.needsPatientInteraction()) {
-                job.status = "in-review"
-            }
+            job.status = "in-review"
             await job.save()
             return res.json(job)
 

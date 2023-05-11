@@ -1,4 +1,5 @@
 import request    from "supertest"
+import EHIClient from "./EHIClient"
 import { SERVER } from "./TestContext"
 
 
@@ -22,6 +23,26 @@ describe("renders html pages", () => {
     it ("/jobs/:id/customize", () => request(SERVER.baseUrl)
         .get("/jobs/abc/customize")
         .expect(404)); // No "abc" job found
+    
+    it ("/jobs/:id/customize redirects to patient login if needed", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("xyz")
+        await request(SERVER.baseUrl)
+            .get(`/jobs/${jobId}/customize`)
+            .redirects(0)
+            .expect("location", /^\/patient-login\?action=.+/)
+            .expect(302);
+    })
+
+    it ("/jobs/:id/customize does not redirect if _patient param is set", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("xyz")
+        await request(SERVER.baseUrl)
+            .get(`/jobs/${jobId}/customize?_patient=whatever`)
+            .redirects(0)
+            .expect(/json/)
+            .expect(200);
+    })
 })
 
 describe("Capability statement", () => {

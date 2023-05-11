@@ -4,14 +4,31 @@ import EHIClient  from "./EHIClient"
 import { FIRST_PATIENT_ID, SERVER } from "./TestContext"
 
 
-it ("GET /jobs", () => request(SERVER.baseUrl)
+it ("GET /jobs (empty)", () => request(SERVER.baseUrl)
     .get("/jobs")
     .expect("content-type", /\bjson\b/)
     .expect(200));
 
-it ("GET /jobs/:id", () => request(SERVER.baseUrl)
+it ("GET /jobs", async () => {
+    await new EHIClient().kickOff("123")
+    await new EHIClient().kickOff("456")
+    await request(SERVER.baseUrl)
+        .get("/jobs")
+        .expect("content-type", /\bjson\b/)
+        .expect(200)
+});
+
+it ("GET /jobs/:id (empty)", () => request(SERVER.baseUrl)
     .get("/jobs/xyz")
     .expect(404, /Export job not found/));
+
+it ("GET /jobs/:id", async () => {
+    const { jobId } = await new EHIClient().kickOff("123")
+    await request(SERVER.baseUrl)
+        .get("/jobs/" + jobId)
+        .expect("content-type", /\bjson\b/)
+        .expect(200)
+});
 
 
 describe("Updating a job", () => {

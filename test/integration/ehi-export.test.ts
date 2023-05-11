@@ -7,14 +7,17 @@ import { SERVER }   from "./TestContext"
 import config       from "../../config"
 import patients     from "../../data/db"
 
-function getFirstPatientId() {
+function getPatientIdAt(index:number) {
+    let i = 0
     for (const id of patients.keys()) {
-        return id
+        if (index === i++) {
+            return id
+        }
     }
-    throw new Error("No patients found")
+    throw new Error(`No patient found at index ${index}`)
 }
 
-const PATIENT_ID = getFirstPatientId()
+const PATIENT_ID = getPatientIdAt(0)
 
 
 describe("Kick off", () => {
@@ -38,6 +41,32 @@ describe("Kick off", () => {
         expect(result.link).to.exist;
         expect(result.status).to.exist;
         expect(result.response.status).to.equal(202)
+    })
+
+    it ('accepts customization parameters', async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId, {
+            parameters: {
+                medicalRecord    : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Medical Record"    },
+                visits           : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Clinic Visits"     },
+                dischargeSummary : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Discharge Summary" },
+                labs             : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Lab Reports"       },
+                operative        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Operative Reports" },
+                pathology        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Pathology Reports" },
+                radiation        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Radiation Reports" },
+                radiology        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Radiology Reports" },
+                photographs      : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Photographs"       },
+                billing          : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Billing Records"   },
+                other            : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Other"             }
+            }
+        })
+
+        await client.approve(jobId)
+        const manifest = await client.waitForExport(status!)
+        // console.log(manifest)
+        expect(manifest).to.exist;
+
     })
 })
 
@@ -129,6 +158,15 @@ describe ("download", () => {
         expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
     })
 
+    it ('Adding attachment requires file upload', async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .field("action", "addAttachments")
+            .expect(400, 'The "addAttachments" action requires that one more files are upload via the "attachments" field')
+    })
+
     it ('Attachment files can be downloaded', async () => {
         const client = new EHIClient()
         
@@ -188,6 +226,48 @@ describe ("download", () => {
         expect(body.attachments.length).to.equal(1)
         expect(body.attachments[0].url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
     })
+
+    it ("Can't remove attachments form rejected jobs", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "reject" })
+            .expect(200)
+
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "removeAttachments", params: [ "whatever" ]})
+            .expect(400, `Cannot remove attachments from export in "rejected" state`)
+    })
+
+    it ("Can't remove attachments form approved jobs", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff("fake-patient-id")
+
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "approve" })
+            .expect(200)
+
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "removeAttachments", params: [ "whatever" ]})
+            .expect(400, `Cannot remove attachments from export in "requested" state`)
+    })
+
+    it ('Exports can be downloaded', async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
+        await client.waitForExport(status!)
+        await request(SERVER.baseUrl)
+            .get("/jobs/" + jobId + "/download")
+            .expect(200)
+            .expect('content-type', 'application/zip')
+            .expect('content-disposition', /^attachment; filename=/)
+    })
 })
 
 describe ("abort", () => {
@@ -195,6 +275,15 @@ describe ("abort", () => {
     it ("Can abort after the export is started", async () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
+        const result = await client.abort(jobId!)
+        expect(result.status).to.equal(202)
+    })
+
+    it ("Can abort after the export is approved", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.approve(jobId)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
     })

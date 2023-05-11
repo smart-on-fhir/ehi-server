@@ -50,13 +50,6 @@ export function requireUrlencodedPost(req: Request) {
     }
 }
 
-// export function notSupported(message: string = "", code = 400) {
-//     return (req: Request) => {
-//         throw new HttpError(message || `${req.method} ${req.originalUrl} is not supported by this server`).status(code)
-//     };
-// }
-
-
 export function validateToken(required = true) {
     return (req: Request, res: Response, next: NextFunction) => {
         if (!req.headers.authorization) {
@@ -83,37 +76,6 @@ export function validateToken(required = true) {
         next()
     }
 }
-
-// export function authenticate({ checkOnly }: { checkOnly?: boolean }) {
-//     return (req: Request, res: Response, next: NextFunction) => {
-        
-//         // No token provided
-//         if (!req.headers.authorization) {
-            
-//             // Do not attempt to authorize. Just show an error.
-//             if (checkOnly) {
-//                 return next(new HttpError("Unauthorized! No authorization header provided in request.").status(401))
-//             }
-
-//             // Attempt to authorize if possible
-
-//             return next();
-//         }
-
-//         try {
-//             var token = jwt.verify(
-//                 req.headers.authorization.split(" ")[1],
-//                 config.jwtSecret
-//             );
-//         } catch (e) {
-//             return next(new HttpError("Invalid token: " + (e as Error).message).status(401))
-//         }
-
-//         if (!token || typeof token !== "object") {
-//             return next(new HttpError("Invalid token").status(400))
-//         }
-//     }
-// }
 
 export function createOperationOutcome(message: string, {
     issueCode = "processing", // http://hl7.org/fhir/valueset-issue-type.html
@@ -222,10 +184,6 @@ export function validateParam(container: any, name: string, validator?: ((value:
     }
 }
 
-export function parseNdjson<T = unknown>(data: string): T[] {
-    return data.trim().split("\n").filter(Boolean).map(l => JSON.parse(l) as T)
-}
-
 export function getPrefixedFilePath(destination: string, fileName: string) {
     let dst = Path.join(destination, fileName), counter = 0;
     while (statSync(dst, { throwIfNoEntry: false })?.isFile()) {
@@ -234,6 +192,6 @@ export function getPrefixedFilePath(destination: string, fileName: string) {
     return dst
 }
 
-export function getPath(obj: any, path = "") {
+export function getPath(obj: any, path: string) {
     return path.split(".").reduce((out, key) => out ? out[key] : undefined, obj)
 }

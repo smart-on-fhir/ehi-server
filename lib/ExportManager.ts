@@ -78,7 +78,6 @@ export default class ExportJob
         labs             : { enabled: false, name: "Lab Reports"       },
         operative        : { enabled: false, name: "Operative Reports" },
         pathology        : { enabled: false, name: "Pathology Reports" },
-        radiation        : { enabled: false, name: "Radiation Reports" },
         radiology        : { enabled: false, name: "Radiology Reports" },
         photographs      : { enabled: false, name: "Photographs"       },
         billing          : { enabled: false, name: "Billing Records"   },
@@ -106,12 +105,6 @@ export default class ExportJob
         return job
     }
 
-    public static async destroy(id: string)
-    {
-        const job = await ExportJob.byId(id)
-        return job.destroy()
-    }
-
     public async destroy()
     {
         const path = Path.join(config.jobsDir, this.id)
@@ -133,22 +126,22 @@ export default class ExportJob
     public static async destroyIfNeeded(id: string)
     {
         const job = await ExportJob.byId(id)
-        const now = Date.now()
-
-        let shouldDelete = false
-
-        if (job.status === "aborted" || job.status === "rejected") {
-            shouldDelete = true
-        }
-        else if (job.status === "retrieved") {
-            shouldDelete = now - job.completedAt > config.completedJobLifetimeMinutes * 60000
-        }
-        else if (job.status === "in-review" || job.status === "awaiting-input") {
-            shouldDelete = now - job.createdAt > config.jobMaxLifetimeMinutes * 60000
-        }
-
-        if (shouldDelete) {
-            await ExportJob.destroy(id)
+        switch (job.status) {
+            case "aborted":
+            case "rejected":
+                await job.destroy()
+            break;
+            case "retrieved":
+                if (Date.now() - job.completedAt > config.completedJobLifetimeMinutes * 60000) {
+                    await job.destroy()
+                }
+            break;
+            case "in-review":
+            case "awaiting-input":
+                if (Date.now() - job.createdAt > config.jobMaxLifetimeMinutes * 60000) {
+                    await job.destroy()
+                }
+            break;
         }
     }
 
@@ -280,11 +273,11 @@ export default class ExportJob
                             x.code === "LAB"
                         )));
 
-                    if (!isLab) {
-                        return true
+                    if (isLab) {
+                        return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
                     }
 
-                    return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
+                    return true
                 }
 
             case "Observation": // Any Observations but labs are opt out
@@ -294,12 +287,12 @@ export default class ExportJob
                             x.system === "http://terminology.hl7.org/CodeSystem/observation-category" &&
                             x.code === "laboratory"
                         )));
-                    
-                    if (!isLab) {
-                        return true
+
+                    if (isLab) {
+                        return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
                     }
 
-                    return check(this.parameters.labs, "effectiveDateTime", "effectiveDateTime")
+                    return true
                 }
             
             // Include everything else if "medicalRecord" is on
@@ -401,31 +394,6 @@ export default class ExportJob
         }
     }
 
-    /**
-     * Currently returns true only if the form was filled in by providing at
-     * least one parameter and at least one authorization.
-     */
-    public needsPatientInteraction() {
-        let hasParams = false;
-        let hasAuth   = false;
-
-        for (const name in this.parameters) {
-            if (this.parameters[name as keyof typeof this.parameters]?.enabled) {
-                hasParams = true;
-                break;
-            }
-        }
-
-        for (const name in this.authorizations) {
-            if (this.authorizations[name as keyof typeof this.authorizations]?.value) {
-                hasAuth = true;
-                break;
-            }
-        }
-
-        return hasParams && hasAuth
-    }
-
     public setParameters(parameters: EHI.ExportJobInformationParameters) {
         this.parameters = parameters
         return this
@@ -437,16 +405,16 @@ export default class ExportJob
     }
 }
 
-async function check()
+export async function check(dir = "jobs")
 {
-    const base  = Path.join(__dirname, "../jobs")
+    const base  = Path.join(__dirname, "..", dir)
     const items = readdirSync(base);
     for (const id of items) {
         if (statSync(Path.join(base, id)).isDirectory()) {
             await ExportJob.destroyIfNeeded(id)
         }
     }
-    setTimeout(check, config.jobCleanupMinutes * 60000).unref()
+    setTimeout(check.bind(null, dir), config.jobCleanupMinutes * 60000).unref()
 }
 
 check();
