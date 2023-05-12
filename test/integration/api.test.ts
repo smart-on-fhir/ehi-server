@@ -63,11 +63,22 @@ describe("Updating a job", () => {
     });
 
     it ("Can approve jobs", async () => {
-        const { jobId } = await new EHIClient().kickOff(FIRST_PATIENT_ID)
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
+        await client.customize(jobId)
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
         .send({ action: "approve" })
         .expect(200, /"status":"requested"/);
+    })
+
+    it ("Cannot approve jobs not in 'in-review' state", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
+        await request(SERVER.baseUrl)
+        .post("/jobs/" + jobId)
+        .send({ action: "approve" })
+        .expect(400, 'Only "in-review" exports can be approved');
     })
 
     it ("Can reject jobs", async () => {
@@ -76,6 +87,34 @@ describe("Updating a job", () => {
         .post("/jobs/" + jobId)
         .send({ action: "reject" })
         .expect(200, /"status":"rejected"/)
+    })
+
+    it ("Cannot reject started jobs", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
+        await client.customize(jobId)
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "approve"})
+            .expect(200)
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "reject" })
+            .expect(400, 'Only "in-review" and "awaiting-input" exports can be rejected')
+    })
+
+    it ("Cannot customize started jobs", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
+        await client.customize(jobId)
+        await request(SERVER.baseUrl)
+            .post("/jobs/" + jobId)
+            .send({ action: "approve"})
+            .expect(200)
+        
+        const res = await client.customize(jobId)
+        expect(res.status).to.equal(400)
+        expect(await res.text()).to.equal('Only "in-review" and "awaiting-input" exports can be customized')
     })
 
     it ("Can add attachments", async () => {

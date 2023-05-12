@@ -47,17 +47,26 @@ export async function updateJob(req: Request, res: Response) {
             return res.json(job)
 
         case "approve":
+            if (job.status !== "in-review") {
+                throw new HttpError('Only "in-review" exports can be approved').status(400)
+            }
             job.status = "requested"
             await job.save()
             job.kickOff(req); // DON'T WAIT FOR THIS!
             return res.json(job);
 
         case "reject":
+            if (job.status !== "in-review" && job.status !== "awaiting-input") {
+                throw new HttpError('Only "in-review" and "awaiting-input" exports can be rejected').status(400)
+            }
             job.status = "rejected"
             await job.save()
             return res.json(job);
 
         case "customize":
+            if (job.status !== "in-review" && job.status !== "awaiting-input") {
+                throw new HttpError('Only "in-review" and "awaiting-input" exports can be customized').status(400)
+            }
             job.setParameters(req.body.payload.parameters)
             job.setAuthorizations(req.body.payload.authorizations)
             job.status = "in-review"

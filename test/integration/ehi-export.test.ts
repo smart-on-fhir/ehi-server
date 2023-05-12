@@ -173,6 +173,8 @@ describe ("download", () => {
         // Create export
         const { status, jobId } = await client.kickOff(PATIENT_ID)
 
+        await client.customize(jobId)
+
         // Add files
         await request(SERVER.baseUrl)
         .post("/jobs/" + jobId)
@@ -246,6 +248,8 @@ describe ("download", () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff("fake-patient-id")
 
+        await client.customize(jobId)
+
         await request(SERVER.baseUrl)
             .post("/jobs/" + jobId)
             .send({ action: "approve" })
@@ -260,6 +264,7 @@ describe ("download", () => {
     it ('Exports can be downloaded', async () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
         await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
         await client.waitForExport(status!)
         await request(SERVER.baseUrl)
