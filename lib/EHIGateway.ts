@@ -145,7 +145,7 @@ export async function abort(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     await job.abort()
     await job.destroy()
-    res.status(202).json(createOperationOutcome("Export aborted and deleted"))
+    res.status(202).json(createOperationOutcome("Export aborted and deleted", { severity: "information" }))
 }
 
 export async function checkStatus(req: Request, res: Response) {
