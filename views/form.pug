@@ -132,7 +132,7 @@ html(lang="en")
                     }).then(() => {
                         if ("#{redirect}") {
                             const url = new URL("#{redirect}")
-                            url.search = window.location.search
+                            //- url.search = window.location.search
                             window.location.href = url.href
                         }
                     }).catch(e => {
