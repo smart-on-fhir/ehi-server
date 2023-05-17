@@ -22,6 +22,7 @@ import {
     getPath,
     getPrefixedFilePath,
     getRequestBaseURL,
+    humanName,
     wait
 } from "."
 
@@ -58,6 +59,11 @@ export default class ExportJob
     readonly id: string;
 
     patientId: string;
+
+    patient: {
+        id: string
+        name: string
+    };
 
     manifest: ExportManifest | null = null;
 
@@ -163,11 +169,16 @@ export default class ExportJob
      * constructors cannot be async. `ExportManager.create()` can be used instead
      * @param patientId The ID of the exported patient
      */
-    protected constructor(patientId: string, _id?: string) {
-        this.id = _id || crypto.randomBytes(8).toString("hex")
+    protected constructor(patientId: string, _jobId?: string) {
+        this.id = _jobId || crypto.randomBytes(8).toString("hex")
         this.createdAt = Date.now()
+        const pt = patients.get(patientId)?.patient
         this.patientId = patientId
-        this.path      = Path.join(config.jobsDir, this.id)
+        this.patient = {
+            id: patientId,
+            name: pt ? humanName(pt) : "Unknown Patient Name"
+        }
+        this.path = Path.join(config.jobsDir, this.id)
     }
 
     /**
@@ -304,7 +315,7 @@ export default class ExportJob
     public async kickOff(req: Request)
     {
         const baseUrl       = getRequestBaseURL(req)
-        const patientPath   = patients.get(this.patientId)!.file
+        const patientPath   = patients.get(this.patient.id)!.file
         const patientData   = await readFile(patientPath, "utf8")
         const patientBundle = JSON.parse(patientData) as fhir4.Bundle
 
@@ -346,7 +357,7 @@ export default class ExportJob
             await addOutputEntry<fhir4.DocumentReference>({
                 resourceType: "DocumentReference",
                 status: "current",
-                subject: { reference: "Patient/" + this.patientId },
+                subject: { reference: "Patient/" + this.patient.id },
                 content: this.attachments.map(f => ({ attachment: f }))
             }, true)
         }
@@ -383,7 +394,8 @@ export default class ExportJob
     {
         return {
             id            : this.id,
-            patientId     : this.patientId,
+            patientId     : this.patient.id,
+            patient       : this.patient,
             manifest      : this.manifest,
             status        : this.status,
             createdAt     : this.createdAt,

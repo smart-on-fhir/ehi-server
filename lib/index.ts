@@ -195,3 +195,37 @@ export function getPrefixedFilePath(destination: string, fileName: string) {
 export function getPath(obj: any, path: string) {
     return path.split(".").reduce((out, key) => out ? out[key] : undefined, obj)
 }
+
+type FHIRPerson = fhir2.Patient | fhir3.Patient | fhir4.Patient | fhir2.Practitioner | fhir3.Practitioner | fhir4.Practitioner
+
+export function toArray(x: any) {
+    if (!Array.isArray(x)) {
+        return [ x ];
+    }
+    return x;
+}
+
+export function humanName(human: FHIRPerson, separator = " "): string {
+    let names = human.name || [];
+    if (!Array.isArray(names)) {
+        names = [ names ];
+    }
+    
+    let name = names[0];
+    
+    if (!name) {
+        name = { family: [ "No Name Listed" ] };
+    }
+    
+    const prefix = toArray(name.prefix || "").filter(Boolean).join(" ")
+    const given  = toArray(name.given  || "").filter(Boolean).join(" ")
+    const family = toArray(name.family || "").filter(Boolean).join(" ")
+    
+    let out = [prefix, given, family].filter(Boolean).join(separator || " ");
+    
+    if (name.suffix) {
+        out += ", " + name.suffix;
+    }
+
+    return out;
+}

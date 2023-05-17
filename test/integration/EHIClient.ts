@@ -1,3 +1,4 @@
+import { expect } from "chai"
 import { wait } from "../../lib"
 import { authorize, SERVER } from "./TestContext"
 
@@ -22,9 +23,13 @@ export default class EHIClient
     }
 
     public async kickOff(patientId: string) {
-        const res = await this.request(`${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`, { method: "POST" });
+        const url = `${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`
+        const res = await this.request(url, { method: "POST" });
+        expect(res.status, `kickOff failed for ${url}`).to.equal(202)
         const status = res.headers.get('content-location')
+        expect(status).to.exist
         const jobId = status!.match(/\/jobs\/([^/]+)\/status/)?.[1]!
+        expect(jobId).to.exist
         return {
             link: res.headers.get('link'),
             response: res,

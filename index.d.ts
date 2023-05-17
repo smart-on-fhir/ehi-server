@@ -209,8 +209,17 @@ declare namespace EHI {
 
         /**
          * The ID of the exported patient
+         * @deprecated Use `patient.id` instead
          */
         patientId: string
+
+        /**
+         * The ID and humanized name of the patient
+         */
+        patient: {
+            id: string
+            name: string
+        }
 
         /**
          * The bulk data export manifest if available. This will be null until

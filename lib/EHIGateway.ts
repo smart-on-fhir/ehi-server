@@ -194,7 +194,7 @@ export async function renderForm(req: Request, res: Response) {
     if (!req.query._patient) {
         const q = new URLSearchParams()
         q.set("action", getRequestBaseURL(req) + req.url)
-        q.set("_patient", job.patientId)
+        q.set("_patient", job.patient.id)
 
         // TODO: WHERE SHOULD THIS COME FROM???
         // q.set("redirect", "http://localhost:3000/")

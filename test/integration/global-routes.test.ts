@@ -1,6 +1,6 @@
 import request    from "supertest"
 import EHIClient from "./EHIClient"
-import { SERVER } from "./TestContext"
+import { SERVER, FIRST_PATIENT_ID } from "./TestContext"
 
 
 describe("renders html pages", () => {
@@ -26,7 +26,7 @@ describe("renders html pages", () => {
     
     it ("/jobs/:id/customize redirects to patient login if needed", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff("xyz")
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
             .get(`/jobs/${jobId}/customize`)
             .redirects(0)
@@ -36,12 +36,11 @@ describe("renders html pages", () => {
 
     it ("/jobs/:id/customize does not redirect if _patient param is set", async () => {
         const client = new EHIClient()
-        const { jobId } = await client.kickOff("xyz")
+        const { jobId } = await client.kickOff(FIRST_PATIENT_ID)
         await request(SERVER.baseUrl)
-            .get(`/jobs/${jobId}/customize?_patient=whatever`)
+            .get(`/jobs/${jobId}/customize?_patient=${FIRST_PATIENT_ID}`)
             .redirects(0)
-            .expect(/json/)
-            .expect(200);
+            .expect(200)
     })
 })
 
