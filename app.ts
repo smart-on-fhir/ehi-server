@@ -33,17 +33,18 @@ app.use(json());
 
 const requireAuth = validateToken()
 
+// SMART -----------------------------------------------------------------------
 
-// SMART: get authorization code
+// get authorization code
 app.get("/auth/authorize", asyncRouteWrap(AuthorizeHandler.handle))
 
-// SMART: get access or refresh token
+// get access or refresh token
 app.post("/auth/token", asyncRouteWrap(TokenHandler.handle))
 
-// SMART: authorize app dialog
+// authorize app dialog
 app.get("/authorize-app", (req, res) => res.render("authorize-app", { query: req.query }))
 
-// SMART: patient login dialog
+// patient login dialog
 app.get("/patient-login", (req, res) => {
     const list: any[] = [];
     patients.forEach((value, key) => {
@@ -52,41 +53,50 @@ app.get("/patient-login", (req, res) => {
     res.render("patient-login", { patients: list, query: req.query })
 })
 
-// SMART: WellKnown SMART Configuration
+// WellKnown SMART Configuration
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
 
-// FHIR: CapabilityStatement
+// FHIR CapabilityStatement
 app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 
-// EHI: kick-off
+// EHI -------------------------------------------------------------------------
+
+// kick-off
 app.post("/fhir/Patient/:id/\\$ehi-export", requireAuth, asyncRouteWrap(Gateway.kickOff))
 
-// EHI: Render job customization form
+// Render job customization form
 app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
-// EHI: get job status
+// get job status
 app.get("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.checkStatus))
 
-// EHI: abort/delete job
+// abort/delete job (bulk data like)
 app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 
-// EHI: download resource file
+// download resource file
 app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
 
-// EHI: download attachment file
+// download attachment file
 app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
 
-// API: browse jobs
+// API -------------------------------------------------------------------------
+
+// browse jobs
 app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
 
-// API: view job
+// view job
 app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
 
-// API: update job
+// update job
 app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.updateJob))
 
-// API: download all as zip
+// delete job
+app.delete("/jobs/:id", asyncRouteWrap(Gateway.abort))
+
+// download as zip
 app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
+
+// Other -----------------------------------------------------------------------
 
 // Home page
 app.get("/", (req, res) => res.render("index", { baseUrl: getRequestBaseURL(req) }))
