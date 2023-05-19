@@ -5,7 +5,11 @@ html(lang="en")
         link(rel="stylesheet", href="/style.css")
     body
         #main
-            h1.center Authorize Export?
+            h1.header
+                img(src="/logo.svg" align="left")
+                | EHI Export Server
+            
+            h2.center Authorize Export?
             hr
             form(action="/auth/authorize")
                 each param, key in query

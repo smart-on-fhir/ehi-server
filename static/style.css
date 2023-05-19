@@ -12,7 +12,19 @@ body {
     padding: 2em;
     margin: 0 auto;
     background: #FFF;
-    border-radius: 0.5em;
+    border-radius: 10px;
+}
+
+#main > .header {
+    background: #00a5a8 linear-gradient(270deg, #00a859, #008ae3);
+    color: #FFF;
+    padding: 1em;
+    margin: -1em -1em 1em;
+    border-radius: 10px 10px 0 0;
+}
+
+#main > .header img {
+    margin-right: 0.5ex;
 }
 
 p {

@@ -78,16 +78,20 @@ export default class ExportJob
     protected attachments: fhir4.Attachment[] = [];
     
     protected parameters: EHI.ExportJobInformationParameters = {
-        medicalRecord    : { enabled: false, name: "Medical Record"    },
-        visits           : { enabled: false, name: "Clinic Visits"     },
-        dischargeSummary : { enabled: false, name: "Discharge Summary" },
-        labs             : { enabled: false, name: "Lab Reports"       },
-        operative        : { enabled: false, name: "Operative Reports" },
-        pathology        : { enabled: false, name: "Pathology Reports" },
-        radiology        : { enabled: false, name: "Radiology Reports" },
-        photographs      : { enabled: false, name: "Photographs"       },
-        billing          : { enabled: false, name: "Billing Records"   },
-        other            : { enabled: false, name: "Other"             }
+
+        // Electronic Records
+        visits           : { group: 1, enabled: false, name: "Clinic Visits"     },
+        labs             : { group: 1, enabled: false, name: "Lab Reports"       },
+        billing          : { group: 1, enabled: false, name: "Billing Records"   },
+        medicalRecord    : { group: 1, enabled: false, name: "Other Records", from: false, to: false },
+        
+        // Other Records and Documents
+        dischargeSummary : { group: 2, enabled: false, name: "Discharge Summary" },
+        operative        : { group: 2, enabled: false, name: "Operative Reports" },
+        pathology        : { group: 2, enabled: false, name: "Pathology Reports" },
+        radiology        : { group: 2, enabled: false, name: "Radiology Reports" },
+        photographs      : { group: 2, enabled: false, name: "Photographs"       },
+        other            : { group: 2, enabled: false, name: "Other"             },
     };
 
     protected authorizations: EHI.ExportJobAuthorizations = {

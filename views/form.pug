@@ -6,11 +6,18 @@ html(lang="en")
         link(rel="stylesheet", href="/style.css")
     body
         #main
+            h1.header
+                img(src="/logo.svg" align="left")
+                | EHI Export Server
             
             form(enctype="application/json" autocomplete="off")
                 h2.center INFORMATION TO BE RELEASED
-                p.center.text-muted Please check all that apply, and specify dates
+                p.center.text-muted Please check all that apply, and optionally specify date ranges
                 br
+
+
+                h3 Electronic Records
+                hr
                 table
                     thead
                         tr
@@ -20,13 +27,59 @@ html(lang="en")
                             th(style="width:100%") Notes
                     tbody
                         each parameter, key in job.parameters
-                            tr(data-key=key data-name=parameter.name)
-                                td: label
-                                    input(type="checkbox" checked=parameter.enabled)
-                                    |  #{parameter.name}
-                                td.small: input(type="date" disabled=!parameter.enabled name="from"  value=parameter.from ? format(new Date(parameter.from)) : undefined).from
-                                td.small: input(type="date" disabled=!parameter.enabled name="to"    value=parameter.from ? format(new Date(parameter.to  )) : undefined).to
-                                td.small: input(type="text" disabled=!parameter.enabled name="notes" value=parameter.notes).full-width
+                            if (parameter.group === 1)
+                                tr(data-key=key data-name=parameter.name)
+                                    td: label
+                                        input(type="checkbox" checked=parameter.enabled)
+                                        |  #{parameter.name}
+                                    td.small
+                                        if parameter.from === false
+                                            p.center.text-muted N/A
+                                        else
+                                            input(
+                                                type="date"
+                                                disabled=!parameter.enabled
+                                                name="from"
+                                                value=parameter.from ? format(new Date(parameter.from)) : undefined
+                                                placeholder="TEST"
+                                            ).from
+                                    td.small
+                                        if parameter.to === false
+                                            p.center.text-muted N/A
+                                        else
+                                            input(type="date" disabled=!parameter.enabled name="to"    value=parameter.from ? format(new Date(parameter.to  )) : undefined).to
+                                    td.small: input(type="text" disabled=!parameter.enabled name="notes" value=parameter.notes).full-width
+                br
+                br
+                h3 Other Documents
+                hr
+
+                table
+                    thead
+                        tr
+                            th(style="min-width:12em")
+                            th From
+                            th To
+                            th(style="width:100%") Notes
+                    tbody
+                        each parameter, key in job.parameters
+                            if (parameter.group === 2)
+                                tr(data-key=key data-name=parameter.name)
+                                    td: label
+                                        input(type="checkbox" checked=parameter.enabled)
+                                        |  #{parameter.name}
+                                    td.small
+                                        if parameter.from === false
+                                            p.center.text-muted N/A
+                                        else
+                                            input(type="date" disabled=!parameter.enabled name="from"  value=parameter.from ? format(new Date(parameter.from)) : undefined).from
+                                    td.small
+                                        if parameter.to === false
+                                            p.center.text-muted N/A
+                                        else
+                                            input(type="date" disabled=!parameter.enabled name="to"    value=parameter.from ? format(new Date(parameter.to  )) : undefined).to
+                                    td.small: input(type="text" disabled=!parameter.enabled name="notes" value=parameter.notes).full-width
+                br
                 br
                 hr
                 

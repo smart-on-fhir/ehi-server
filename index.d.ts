@@ -258,8 +258,9 @@ declare namespace EHI {
         name   : string
         enabled: boolean
         notes ?: string
-        from  ?: string
-        to    ?: string
+        from  ?: string | false
+        to    ?: string | false
+        group ?: number
     }
 
     interface ExportJobInformationParameters {

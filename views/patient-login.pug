@@ -5,7 +5,11 @@ html(lang="en")
         link(rel="stylesheet", href="/style.css")
     body
         #main
-            h1.center Patient Login
+            h1.header
+                img(src="/logo.svg" align="left")
+                | EHI Export Server
+
+            h2.center Patient Login
             hr
             - const action = query.action || "/auth/authorize"
             form(action=action autocomplete="off")
