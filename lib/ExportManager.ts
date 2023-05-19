@@ -358,7 +358,13 @@ export default class ExportJob
                 resourceType: "DocumentReference",
                 status: "current",
                 subject: { reference: "Patient/" + this.patient.id },
-                content: this.attachments.map(f => ({ attachment: f }))
+                content: this.attachments.map(f => ({ attachment: f })),
+                meta: {
+                    tag: [{
+                        code: "ehi-export",
+                        display: "generated as part of an ehi-export request"
+                    }
+                ]}
             }, true)
         }
 

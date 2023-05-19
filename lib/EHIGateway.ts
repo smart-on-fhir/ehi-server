@@ -230,6 +230,7 @@ export async function downloadArchive(req: Request, res: Response) {
             archive.file(path, { name });
         }
         archive.directory(Path.join(job.path, "attachments"), "attachments");
+        archive.append(JSON.stringify(job.manifest, null, 4), { name: "manifest.json" });
     }
 
     archive.finalize();
