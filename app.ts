@@ -64,22 +64,27 @@ app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
 // kick-off
 app.post("/fhir/Patient/:id/\\$ehi-export", requireAuth, asyncRouteWrap(Gateway.kickOff))
 
-// Render job customization form
-app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
-
 // get job status
 app.get("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.checkStatus))
 
 // abort/delete job (bulk data like)
 app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 
-// download resource file
-app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
+// Custom endpoints ------------------------------------------------------------
+
+// Render job customization form
+app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
 // download attachment file
 app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
 
+// download resource file
+app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
+
+
 // API -------------------------------------------------------------------------
+// download as zip
+app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // browse jobs
 app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
@@ -97,9 +102,6 @@ app.delete("/jobs/:id", asyncRouteWrap(Gateway.abort))
 app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // Other -----------------------------------------------------------------------
-
-// Home page
-app.get("/", (req, res) => res.render("index", { baseUrl: getRequestBaseURL(req) }))
 
 // Global error handler
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {   

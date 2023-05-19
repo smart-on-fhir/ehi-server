@@ -5,11 +5,6 @@ import { SERVER, FIRST_PATIENT_ID } from "./TestContext"
 
 describe("renders html pages", () => {
 
-    it ("/", () => request(SERVER.baseUrl)
-        .get("/")
-        .expect('Content-Type', /html/)
-        .expect(200));
-
     it ("/authorize-app", () => request(SERVER.baseUrl)
         .get("/authorize-app")
         .expect('Content-Type', /html/)
