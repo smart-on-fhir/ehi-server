@@ -179,7 +179,7 @@ export async function kickOff(req: Request, res: Response) {
     const job = await ExportJob.create(req.params.id)
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
-    res.header("Link", `${baseUrl}/jobs/${job.id}/customize; rel="patient-interaction"`)
+    res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${req.params.id}; rel="patient-interaction"`)
     res.status(202)
     res.json({ message: "Please follow the url in the link header to customize your export" })
 }
