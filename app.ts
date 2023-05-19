@@ -10,7 +10,7 @@ import AuthorizeHandler        from "./lib/authorize"
 import TokenHandler            from "./lib/token"
 import getMetadata             from "./lib/metadata"
 import getWellKnownSmartConfig from "./lib/smart-configuration"
-import { asyncRouteWrap, getRequestBaseURL, validateToken } from "./lib"
+import { asyncRouteWrap, validateToken } from "./lib"
 
 
 
