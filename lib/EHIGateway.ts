@@ -171,6 +171,8 @@ export async function checkStatus(req: Request, res: Response) {
     res.header("X-Progress" , job.status)
     res.header("Retry-after", config.jobCleanupMinutes * 60 + "")
     res.status(202)
+    // See last para of https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html#status-request
+    res.json(job)
     return res.end()
 }
 
@@ -197,8 +199,8 @@ export async function renderForm(req: Request, res: Response) {
         q.set("_patient", job.patient.id)
 
         // TODO: WHERE SHOULD THIS COME FROM???
-        // q.set("redirect", "http://localhost:3000/")
-        q.set("redirect", String(req.query.redirect || "") || "http://localhost:3000/")
+        // q.set("redirect", "http://127.0.0.1:3000/")
+        q.set("redirect", String(req.query.redirect || "") || "http://127.0.0.1:3000/")
 
         return res.redirect(`/patient-login?${q}`)
     }
