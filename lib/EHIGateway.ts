@@ -69,8 +69,9 @@ export async function updateJob(req: Request, res: Response) {
             }
             job.setParameters(req.body.payload.parameters)
             job.setAuthorizations(req.body.payload.authorizations)
-            job.status = "in-review"
+            job.status = "requested"
             await job.save()
+            job.kickOff(req); // DON'T WAIT FOR THIS!
             return res.json(job)
 
         case "":
