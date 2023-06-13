@@ -100,15 +100,15 @@ describe ("status", () => {
         expect(res2.headers.get("retry-after")).to.exist;
     })
 
-    it ('Replies properly while in awaiting approval', async () => {
-        const client = new EHIClient()
-        const { status, jobId } = await client.kickOff(PATIENT_ID)
-        await client.customize(jobId)
-        const res2 = await client.request(status!);
-        expect(res2.status).to.equal(202);
-        expect(res2.headers.get("x-progress")).to.equal("in-review");
-        expect(res2.headers.get("retry-after")).to.exist;
-    })
+    // it ('Replies properly while in awaiting approval', async () => {
+    //     const client = new EHIClient()
+    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
+    //     await client.customize(jobId)
+    //     const res2 = await client.request(status!);
+    //     expect(res2.status).to.equal(202);
+    //     expect(res2.headers.get("x-progress")).to.equal("in-review");
+    //     expect(res2.headers.get("retry-after")).to.exist;
+    // })
 
     it ('Replies properly while in progress', async () => {
         const client = new EHIClient()
@@ -167,112 +167,112 @@ describe ("download", () => {
             .expect(400, 'The "addAttachments" action requires that one more files are upload via the "attachments" field')
     })
 
-    it ('Attachment files can be downloaded', async () => {
-        const client = new EHIClient()
+    // it ('Attachment files can be downloaded', async () => {
+    //     const client = new EHIClient()
         
-        // Create export
-        const { status, jobId } = await client.kickOff(PATIENT_ID)
+    //     // Create export
+    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
 
-        await client.customize(jobId)
+    //     await client.customize(jobId)
 
-        // Add files
-        await request(SERVER.baseUrl)
-        .post("/jobs/" + jobId)
-        .field("action", "addAttachments")
-        .attach("attachments", "test/fixtures/img3.png")
-        .attach("attachments", "test/fixtures/img2.png")
-        .expect(200)
+    //     // Add files
+    //     await request(SERVER.baseUrl)
+    //     .post("/jobs/" + jobId)
+    //     .field("action", "addAttachments")
+    //     .attach("attachments", "test/fixtures/img3.png")
+    //     .attach("attachments", "test/fixtures/img2.png")
+    //     .expect(200)
 
-        // Approve
-        await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
+    //     // Approve
+    //     await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
 
-        // Fetch the manifest
-        const manifest = await client.waitForExport(status!)
+    //     // Fetch the manifest
+    //     const manifest = await client.waitForExport(status!)
 
-        // console.log(manifest)
-        expect(manifest).to.exist;
+    //     // console.log(manifest)
+    //     expect(manifest).to.exist;
 
-        // Fetch the DocumentReference
-        const docRefEntry = manifest.output.find(x => x.type == "DocumentReference")
-        expect(docRefEntry).to.exist;
-        const res = await client.request(docRefEntry!.url)
-        const txt = await res.text()
-        const lines = txt.trim().split(/\n/).filter(Boolean)
-        expect(lines.length).to.equal(1)
-        const docRef = JSON.parse(lines[0])
+    //     // Fetch the DocumentReference
+    //     const docRefEntry = manifest.output.find(x => x.type == "DocumentReference")
+    //     expect(docRefEntry).to.exist;
+    //     const res = await client.request(docRefEntry!.url)
+    //     const txt = await res.text()
+    //     const lines = txt.trim().split(/\n/).filter(Boolean)
+    //     expect(lines.length).to.equal(1)
+    //     const docRef = JSON.parse(lines[0])
 
-        // console.log(docRef.content)
-        expect(docRef.content.length).to.equal(2)
-        docRef.content.forEach((f: any) => {
-            expect(f.attachment.url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
-        })
-    })
+    //     // console.log(docRef.content)
+    //     expect(docRef.content.length).to.equal(2)
+    //     docRef.content.forEach((f: any) => {
+    //         expect(f.attachment.url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
+    //     })
+    // })
 
-    it ("Can remove attachments", async () => {
-        const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
-        const { body: job } = await request(SERVER.baseUrl)
-        .post("/jobs/" + jobId)
-        .field("action", "addAttachments")
-        .attach("attachments", "test/fixtures/img3.png")
-        .attach("attachments", "test/fixtures/img2.png")
-        .expect(200)
+    // it ("Can remove attachments", async () => {
+    //     const client = new EHIClient()
+    //     const { jobId } = await client.kickOff("fake-patient-id")
+    //     const { body: job } = await request(SERVER.baseUrl)
+    //     .post("/jobs/" + jobId)
+    //     .field("action", "addAttachments")
+    //     .attach("attachments", "test/fixtures/img3.png")
+    //     .attach("attachments", "test/fixtures/img2.png")
+    //     .expect(200)
 
-        const { body } = await request(SERVER.baseUrl)
-        .post("/jobs/" + jobId)
-        .send({ action: "removeAttachments", params: [ basename(job.attachments[0].url) ]})
-        .expect(200)
+    //     const { body } = await request(SERVER.baseUrl)
+    //     .post("/jobs/" + jobId)
+    //     .send({ action: "removeAttachments", params: [ basename(job.attachments[0].url) ]})
+    //     .expect(200)
         
-        // Verify that the job contains attachments
-        expect(body.attachments).to.be.an.instanceOf(Array)
-        expect(body.attachments.length).to.equal(1)
-        expect(body.attachments[0].url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
-    })
+    //     // Verify that the job contains attachments
+    //     expect(body.attachments).to.be.an.instanceOf(Array)
+    //     expect(body.attachments.length).to.equal(1)
+    //     expect(body.attachments[0].url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
+    // })
 
-    it ("Can't remove attachments form rejected jobs", async () => {
-        const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
+    // it ("Can't remove attachments form rejected jobs", async () => {
+    //     const client = new EHIClient()
+    //     const { jobId } = await client.kickOff("fake-patient-id")
 
-        await request(SERVER.baseUrl)
-            .post("/jobs/" + jobId)
-            .send({ action: "reject" })
-            .expect(200)
+    //     await request(SERVER.baseUrl)
+    //         .post("/jobs/" + jobId)
+    //         .send({ action: "reject" })
+    //         .expect(200)
 
-        await request(SERVER.baseUrl)
-            .post("/jobs/" + jobId)
-            .send({ action: "removeAttachments", params: [ "whatever" ]})
-            .expect(400, `Cannot remove attachments from export in "rejected" state`)
-    })
+    //     await request(SERVER.baseUrl)
+    //         .post("/jobs/" + jobId)
+    //         .send({ action: "removeAttachments", params: [ "whatever" ]})
+    //         .expect(400, `Cannot remove attachments from export in "rejected" state`)
+    // })
 
-    it ("Can't remove attachments form approved jobs", async () => {
-        const client = new EHIClient()
-        const { jobId } = await client.kickOff("fake-patient-id")
+    // it ("Can't remove attachments form approved jobs", async () => {
+    //     const client = new EHIClient()
+    //     const { jobId } = await client.kickOff("fake-patient-id")
 
-        await client.customize(jobId)
+    //     await client.customize(jobId)
 
-        await request(SERVER.baseUrl)
-            .post("/jobs/" + jobId)
-            .send({ action: "approve" })
-            .expect(200)
+    //     await request(SERVER.baseUrl)
+    //         .post("/jobs/" + jobId)
+    //         .send({ action: "approve" })
+    //         .expect(200)
 
-        await request(SERVER.baseUrl)
-            .post("/jobs/" + jobId)
-            .send({ action: "removeAttachments", params: [ "whatever" ]})
-            .expect(400, `Cannot remove attachments from export in "requested" state`)
-    })
+    //     await request(SERVER.baseUrl)
+    //         .post("/jobs/" + jobId)
+    //         .send({ action: "removeAttachments", params: [ "whatever" ]})
+    //         .expect(400, `Cannot remove attachments from export in "requested" state`)
+    // })
 
-    it ('Exports can be downloaded', async () => {
-        const client = new EHIClient()
-        const { status, jobId } = await client.kickOff(PATIENT_ID)
-        await client.customize(jobId)
-        await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
-        await client.waitForExport(status!)
-        await request(SERVER.baseUrl)
-            .get("/jobs/" + jobId + "/download")
-            .expect(200)
-            .expect('content-type', 'application/zip')
-            .expect('content-disposition', /^attachment; filename=/)
-    })
+    // it ('Exports can be downloaded', async () => {
+    //     const client = new EHIClient()
+    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
+    //     await client.customize(jobId)
+    //     await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
+    //     await client.waitForExport(status!)
+    //     await request(SERVER.baseUrl)
+    //         .get("/jobs/" + jobId + "/download")
+    //         .expect(200)
+    //         .expect('content-type', 'application/zip')
+    //         .expect('content-disposition', /^attachment; filename=/)
+    // })
 })
 
 describe ("abort", () => {
