@@ -243,13 +243,7 @@ declare namespace EHI {
          */
         completedAt: number
 
-        /**
-         * Array of additional attachments which should be made available via
-         * DocumentReference
-         */
-        attachments: fhir4.Attachment[],
-
-        parameters?: ExportJobInformationParameters,
+        parameters?: ExportJobInformationParameters
 
         authorizations?: ExportJobAuthorizations
     }
@@ -291,29 +285,6 @@ declare namespace EHI {
         sexualAssault   ?: ExportJobAuthorization,
         genetic         ?: ExportJobAuthorization,
         other           ?: ExportJobAuthorization
-    }
-
-    interface Attachment {
-        
-        /**
-         * Mime type of the content, with charset etc.
-         */
-        contentType: string
-        
-        /**
-         * Data inline, base64ed
-         */
-        data?: string
-
-        /**
-         * Uri where the data can be found
-         */
-        url?: string
-
-        /**
-         * Number of bytes of content (if url provided)
-         */
-        size: number
     }
 
 }

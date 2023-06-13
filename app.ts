@@ -76,7 +76,7 @@ app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
 // download attachment file
-app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
+// app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
 
 // download resource file
 app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
@@ -84,10 +84,10 @@ app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.
 
 // API -------------------------------------------------------------------------
 // download as zip
-app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
+// app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // browse jobs
-app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
+// app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
 
 // view job
 app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
@@ -99,7 +99,7 @@ app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.up
 app.delete("/jobs/:id", asyncRouteWrap(Gateway.abort))
 
 // download as zip
-app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
+// app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // Other -----------------------------------------------------------------------
 
