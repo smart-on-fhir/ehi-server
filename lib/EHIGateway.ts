@@ -42,9 +42,9 @@ export async function updateJob(req: Request, res: Response) {
             await job.addAttachments(req)
             return res.json(job)
 
-        case "removeAttachments":
-            await job.removeAttachments(params)
-            return res.json(job)
+        // case "removeAttachments":
+        //     await job.removeAttachments(params)
+        //     return res.json(job)
 
         case "approve":
             if (job.status !== "in-review") {
@@ -55,13 +55,13 @@ export async function updateJob(req: Request, res: Response) {
             job.kickOff(req); // DON'T WAIT FOR THIS!
             return res.json(job);
 
-        case "reject":
-            if (job.status !== "in-review" && job.status !== "awaiting-input") {
-                throw new HttpError('Only "in-review" and "awaiting-input" exports can be rejected').status(400)
-            }
-            job.status = "rejected"
-            await job.save()
-            return res.json(job);
+        // case "reject":
+        //     if (job.status !== "in-review" && job.status !== "awaiting-input") {
+        //         throw new HttpError('Only "in-review" and "awaiting-input" exports can be rejected').status(400)
+        //     }
+        //     job.status = "rejected"
+        //     await job.save()
+        //     return res.json(job);
 
         case "customize":
             if (job.status !== "in-review" && job.status !== "awaiting-input") {
@@ -81,31 +81,31 @@ export async function updateJob(req: Request, res: Response) {
     }
 }
 
-export async function listJobs(req: Request, res: Response) {
-    // const { sort = "date:desc" } = req.query;
-    // const [ sortBy, sortDir ] = String(sort || "").trim().split(":");
-    const jobs: Omit<EHI.ExportJob, "manifest" | "parameters" | "authorizations">[] = [];
-    const base = config.jobsDir;
-    const items = readdirSync(base);
-    for (const id of items) {
-        if (statSync(Path.join(base, id)).isDirectory()) {
-            const json = JSON.parse(
-                await readFile(
-                    Path.join(base, id, "job.json"),
-                    "utf8"
-                )
-            );
-            delete json.manifest
-            delete json.parameters
-            delete json.authorizations
-            jobs.push(json)
-        }
-    }
+// export async function listJobs(req: Request, res: Response) {
+//     // const { sort = "date:desc" } = req.query;
+//     // const [ sortBy, sortDir ] = String(sort || "").trim().split(":");
+//     const jobs: Omit<EHI.ExportJob, "manifest" | "parameters" | "authorizations">[] = [];
+//     const base = config.jobsDir;
+//     const items = readdirSync(base);
+//     for (const id of items) {
+//         if (statSync(Path.join(base, id)).isDirectory()) {
+//             const json = JSON.parse(
+//                 await readFile(
+//                     Path.join(base, id, "job.json"),
+//                     "utf8"
+//                 )
+//             );
+//             delete json.manifest
+//             delete json.parameters
+//             delete json.authorizations
+//             jobs.push(json)
+//         }
+//     }
 
-    jobs.sort((a, b) => a.completedAt - b.createdAt)
+//     jobs.sort((a, b) => a.completedAt - b.createdAt)
 
-    res.json(jobs)
-}
+//     res.json(jobs)
+// }
 
 export async function downloadFile(req: Request, res: Response) {
     const dir = Path.join(config.jobsDir, req.params.id)
@@ -129,26 +129,26 @@ export async function downloadFile(req: Request, res: Response) {
     })
 }
 
-export async function downloadAttachment(req: Request, res: Response) {
-    const dir = Path.join(config.jobsDir, req.params.id)
+// export async function downloadAttachment(req: Request, res: Response) {
+//     const dir = Path.join(config.jobsDir, req.params.id)
 
-    if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
-        return res.status(404).json(createOperationOutcome("Export job not found"))
-    }
+//     if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+//         return res.status(404).json(createOperationOutcome("Export job not found"))
+//     }
 
-    const path = Path.join(dir, "attachments", req.params.file)
+//     const path = Path.join(dir, "attachments", req.params.file)
 
-    if (!statSync(path, { throwIfNoEntry: false })?.isFile()) {
-        return res.status(404).json(createOperationOutcome("File not found"))
-    }
+//     if (!statSync(path, { throwIfNoEntry: false })?.isFile()) {
+//         return res.status(404).json(createOperationOutcome("File not found"))
+//     }
 
-    res.sendFile(path, {
-        headers: {
-            "connection": "close",
-            "content-disposition": "attachment"
-        }
-    })
-}
+//     res.sendFile(path, {
+//         headers: {
+//             "connection": "close",
+//             "content-disposition": "attachment"
+//         }
+//     })
+// }
 
 export async function abort(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
@@ -214,26 +214,26 @@ export async function renderForm(req: Request, res: Response) {
     })
 }
 
-export async function downloadArchive(req: Request, res: Response) {
-    const job = await ExportJob.byId(req.params.id)
-    const archive = archiver('zip', { zlib: { level: 9 }});
+// export async function downloadArchive(req: Request, res: Response) {
+//     const job = await ExportJob.byId(req.params.id)
+//     const archive = archiver('zip', { zlib: { level: 9 }});
 
-    const date = new Date(job.manifest!.transactionTime)
-    const filename = `EHI Export ${date.toDateString()}.zip`
+//     const date = new Date(job.manifest!.transactionTime)
+//     const filename = `EHI Export ${date.toDateString()}.zip`
 
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    archive.pipe(res);
+//     res.setHeader('Content-Type', 'application/zip');
+//     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+//     archive.pipe(res);
 
-    const items = readdirSync(job.path);
-    for (const name of items) {
-        const path = Path.join(job.path, name)
-        if (name.endsWith(".ndjson") && statSync(path).isFile()) {
-            archive.file(path, { name });
-        }
-        archive.directory(Path.join(job.path, "attachments"), "attachments");
-        archive.append(JSON.stringify(job.manifest, null, 4), { name: "manifest.json" });
-    }
+//     const items = readdirSync(job.path);
+//     for (const name of items) {
+//         const path = Path.join(job.path, name)
+//         if (name.endsWith(".ndjson") && statSync(path).isFile()) {
+//             archive.file(path, { name });
+//         }
+//         archive.directory(Path.join(job.path, "attachments"), "attachments");
+//         archive.append(JSON.stringify(job.manifest, null, 4), { name: "manifest.json" });
+//     }
 
-    archive.finalize();
-}
+//     archive.finalize();
+// }

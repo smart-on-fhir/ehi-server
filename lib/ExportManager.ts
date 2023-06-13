@@ -1,4 +1,4 @@
-import Path, { basename } from "path"
+import Path               from "path"
 import crypto             from "crypto"
 import { Request }        from "express"
 import patients           from "../data/db"
@@ -189,47 +189,47 @@ export default class ExportJob
      * Add results to a task (e.g., dragging a CSV file into the browser to
      * simulate the manual gathering of data from different underlying systems)
      */
-    public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
-        const src = Path.join(__dirname, "..", attachment.path)
-        const dst = Path.join(this.path, "attachments")
-        const path = getPrefixedFilePath(dst, attachment.originalname)
-        const filename = basename(path)
-        await mkdir(dst, { recursive: true });
-        await copyFile(src, path);
-        this.attachments.push({
-            title: filename,
-            contentType: attachment.mimetype,
-            size: attachment.size,
-            url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
-        });
-        await this.save()
-        await unlink(src)
-    }
+    // public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
+    //     const src = Path.join(__dirname, "..", attachment.path)
+    //     const dst = Path.join(this.path, "attachments")
+    //     const path = getPrefixedFilePath(dst, attachment.originalname)
+    //     const filename = basename(path)
+    //     await mkdir(dst, { recursive: true });
+    //     await copyFile(src, path);
+    //     this.attachments.push({
+    //         title: filename,
+    //         contentType: attachment.mimetype,
+    //         size: attachment.size,
+    //         url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
+    //     });
+    //     await this.save()
+    //     await unlink(src)
+    // }
 
-    public async addAttachments(req: Request) {
-        const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
-        if (files.length) {
-            const baseUrl = getRequestBaseURL(req)
-            for (const file of files) {
-                await this.addAttachment(file, baseUrl)
-            }
-        }
-    }
+    // public async addAttachments(req: Request) {
+    //     const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
+    //     if (files.length) {
+    //         const baseUrl = getRequestBaseURL(req)
+    //         for (const file of files) {
+    //             await this.addAttachment(file, baseUrl)
+    //         }
+    //     }
+    // }
 
-    public async removeAttachment(fileName: string) {
-        if (this.status !== "awaiting-input" && this.status !== "in-review") {
-            throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
-        }
+    // public async removeAttachment(fileName: string) {
+    //     if (this.status !== "awaiting-input" && this.status !== "in-review") {
+    //         throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
+    //     }
         
-        this.attachments = this.attachments.filter(x => !x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
-        await this.save()
-    }
+    //     this.attachments = this.attachments.filter(x => !x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
+    //     await this.save()
+    // }
 
-    public async removeAttachments(fileNames: string[]) {
-        for (const fileName of fileNames) {
-            await this.removeAttachment(fileName)
-        }
-    }
+    // public async removeAttachments(fileNames: string[]) {
+    //     for (const fileName of fileNames) {
+    //         await this.removeAttachment(fileName)
+    //     }
+    // }
 
     public async abort()
     {
