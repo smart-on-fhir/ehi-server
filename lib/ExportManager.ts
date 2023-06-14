@@ -12,15 +12,12 @@ import {
 } from "fs"
 import {
     appendFile,
-    copyFile,
     mkdir,
     readFile,
-    unlink,
     writeFile
 } from "fs/promises"
 import {
     getPath,
-    getPrefixedFilePath,
     getRequestBaseURL,
     humanName,
     wait
@@ -74,8 +71,6 @@ export default class ExportJob
     protected createdAt: number = 0;
 
     protected completedAt: number = 0;
-
-    protected attachments: fhir4.Attachment[] = [];
     
     protected parameters: EHI.ExportJobInformationParameters = {
 
@@ -185,52 +180,6 @@ export default class ExportJob
         this.path = Path.join(config.jobsDir, this.id)
     }
 
-    /**
-     * Add results to a task (e.g., dragging a CSV file into the browser to
-     * simulate the manual gathering of data from different underlying systems)
-     */
-    // public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
-    //     const src = Path.join(__dirname, "..", attachment.path)
-    //     const dst = Path.join(this.path, "attachments")
-    //     const path = getPrefixedFilePath(dst, attachment.originalname)
-    //     const filename = basename(path)
-    //     await mkdir(dst, { recursive: true });
-    //     await copyFile(src, path);
-    //     this.attachments.push({
-    //         title: filename,
-    //         contentType: attachment.mimetype,
-    //         size: attachment.size,
-    //         url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
-    //     });
-    //     await this.save()
-    //     await unlink(src)
-    // }
-
-    // public async addAttachments(req: Request) {
-    //     const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
-    //     if (files.length) {
-    //         const baseUrl = getRequestBaseURL(req)
-    //         for (const file of files) {
-    //             await this.addAttachment(file, baseUrl)
-    //         }
-    //     }
-    // }
-
-    // public async removeAttachment(fileName: string) {
-    //     if (this.status !== "awaiting-input" && this.status !== "in-review") {
-    //         throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
-    //     }
-        
-    //     this.attachments = this.attachments.filter(x => !x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
-    //     await this.save()
-    // }
-
-    // public async removeAttachments(fileNames: string[]) {
-    //     for (const fileName of fileNames) {
-    //         await this.removeAttachment(fileName)
-    //     }
-    // }
-
     public async abort()
     {
         this.status = "aborted"
@@ -328,7 +277,10 @@ export default class ExportJob
             transactionTime: new Date(this.createdAt).toISOString(),
             requiresAccessToken: true,
             output: [] as any[],
-            error: [] as any[]
+            error: [] as any[],
+            extension: {
+                metadata: `${baseUrl}/jobs/${this.id}/metadata`
+            }
         };
 
         // Create a function add every single resource
@@ -355,21 +307,6 @@ export default class ExportJob
         for (const entry of patientBundle.entry!) {
             await addOutputEntry(entry.resource!)
             await wait(config.jobThrottle)
-        }
-
-        if (this.attachments.length) {
-            await addOutputEntry<fhir4.DocumentReference>({
-                resourceType: "DocumentReference",
-                status: "current",
-                subject: { reference: "Patient/" + this.patient.id },
-                content: this.attachments.map(f => ({ attachment: f })),
-                meta: {
-                    tag: [{
-                        code: "ehi-export",
-                        display: "generated as part of an ehi-export request"
-                    }
-                ]}
-            }, true)
         }
 
         this.completedAt = Date.now()
@@ -410,7 +347,6 @@ export default class ExportJob
             status        : this.status,
             createdAt     : this.createdAt,
             completedAt   : this.completedAt,
-            attachments   : this.attachments,
             parameters    : this.parameters,
             authorizations: this.authorizations
         }

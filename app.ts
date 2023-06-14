@@ -1,7 +1,6 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
 import cors                    from "cors"
 import { AddressInfo }         from "net"
-import multer                  from "multer"
 import config                  from "./config"
 import { HttpError }           from "./lib/errors"
 import patients                from "./data/db"
@@ -16,13 +15,6 @@ import { asyncRouteWrap, validateToken } from "./lib"
 
 const app = express()
 
-const upload = multer({
-    dest: "uploads/",
-    limits: {
-        files: 5,
-        fileSize: 1024 * 1024 * 10 // 10MB
-    }
-})
 
 app.use(cors({ origin: true, credentials: true }))
 app.set('view engine', 'pug');
@@ -75,31 +67,14 @@ app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 // Render job customization form
 app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
-// download attachment file
-// app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
-
 // download resource file
 app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
 
-
-// API -------------------------------------------------------------------------
-// download as zip
-// app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
-
-// browse jobs
-// app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
-
-// view job
-app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
-
 // update job
-app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.updateJob))
+app.post("/jobs/:id", asyncRouteWrap(Gateway.customize))
 
-// delete job
-app.delete("/jobs/:id", asyncRouteWrap(Gateway.abort))
+app.get("/jobs/:id/metadata", asyncRouteWrap(Gateway.getJobMetadata))
 
-// download as zip
-// app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // Other -----------------------------------------------------------------------
 
