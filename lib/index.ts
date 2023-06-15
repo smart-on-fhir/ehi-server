@@ -205,7 +205,7 @@ export function toArray(x: any) {
     return x;
 }
 
-export function humanName(human: FHIRPerson, separator = " "): string {
+export function humanName(human: FHIRPerson): string {
     let names = human.name || [];
     if (!Array.isArray(names)) {
         names = [ names ];
@@ -221,7 +221,7 @@ export function humanName(human: FHIRPerson, separator = " "): string {
     const given  = toArray(name.given  || "").filter(Boolean).join(" ")
     const family = toArray(name.family || "").filter(Boolean).join(" ")
     
-    let out = [prefix, given, family].filter(Boolean).join(separator || " ");
+    let out = [prefix, given, family].filter(Boolean).join(" ");
     
     if (name.suffix) {
         out += ", " + name.suffix;

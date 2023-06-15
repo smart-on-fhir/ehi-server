@@ -2,35 +2,18 @@ import Path                                          from "path"
 import { statSync }                                  from "fs"
 import { Request, Response }                         from "express"
 import config                                        from "../config"
-import ExportJob                                     from "./ExportManager"
-import { HttpError }                                 from "./errors"
+import ExportJob                                     from "./ExportJob"
 import { createOperationOutcome, getRequestBaseURL } from "."
 
 
-export async function customize(req: Request, res: Response) {
-    try {
-        var job = await ExportJob.byId(req.params.id)
-    } catch (ex) {
-        return res.status(404).json(createOperationOutcome((ex as Error).message))
-    }
-
-    if (job.status !== "in-review" && job.status !== "awaiting-input") {
-        throw new HttpError('Only "in-review" and "awaiting-input" exports can be customized').status(400)
-    }
-    job.setParameters(req.body.parameters)
-    job.setAuthorizations(req.body.authorizations)
-    job.status = "requested"
-    await job.save()
-    job.kickOff(req); // DON'T WAIT FOR THIS!
+export async function customizeAndStart(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    await job.customizeAndStart(req)
     return res.json(job)
 }
 
 export async function getJobMetadata(req: Request, res: Response) {
-    try {
-        var job = await ExportJob.byId(req.params.id)
-    } catch (ex) {
-        return res.status(404).json(createOperationOutcome((ex as Error).message))
-    }
+    const job = await ExportJob.byId(req.params.id)
     res.json(job)
 }
 

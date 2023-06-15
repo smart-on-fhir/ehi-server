@@ -1,11 +1,10 @@
-import { basename } from "path"
-import { expect }   from "chai"
-import request      from "supertest"
-import jwt          from "jsonwebtoken"
-import EHIClient    from "./EHIClient"
-import { SERVER }   from "./TestContext"
-import config       from "../../config"
-import patients     from "../../data/db"
+import { expect } from "chai"
+import request    from "supertest"
+import jwt        from "jsonwebtoken"
+import EHIClient  from "./EHIClient"
+import { FIRST_PATIENT_ID, SERVER } from "./TestContext"
+import config     from "../../config"
+import patients   from "../../data/db"
 
 function getPatientIdAt(index:number) {
     let i = 0
@@ -22,28 +21,45 @@ const PATIENT_ID = getPatientIdAt(0)
 
 describe("Kick off", () => {
 
-    it ('requires auth', () => request(SERVER.baseUrl)
-        .post("/fhir/Patient/123/$ehi-export")
-        .expect(401, /Unauthorized! No authorization header provided in request/));
+    it ('requires auth', async () => {
+        await request(SERVER.baseUrl)
+            .post("/fhir/Patient/123/$ehi-export")
+            .expect(401, /Unauthorized! No authorization header provided in request/)
+    });
     
-    it ('requires valid bearer token', () => request(SERVER.baseUrl)
-        .post("/fhir/Patient/123/$ehi-export")
-        .set("authorization", "Bearer xxxxx")
-        .expect(401, /Invalid token/));
+    it ('requires valid bearer token', async () => {
+        await request(SERVER.baseUrl)
+            .post("/fhir/Patient/123/$ehi-export")
+            .set("authorization", "Bearer xxxxx")
+            .expect(401, /Invalid token/)
+    });
 
-    it ('requires valid JWT bearer', () => request(SERVER.baseUrl)
-        .post("/fhir/Patient/123/$ehi-export")
-        .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
-        .expect(400, /Invalid token/));
+    it ('requires valid JWT bearer', async () => {
+        await request(SERVER.baseUrl)
+            .post("/fhir/Patient/123/$ehi-export")
+            .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
+            .expect(400, /Invalid token/)
+    });
 
     it ('If no params are passed replies with 202 and link', async () => {
-        const result = await new EHIClient().kickOff("123")
+        const result = await new EHIClient().kickOff(FIRST_PATIENT_ID)
         expect(result.link).to.exist;
         expect(result.status).to.exist;
         expect(result.response.status).to.equal(202)
+    });
+
+})
+
+describe("customization parameters", () => {
+
+    it ("rejects bad job IDs", async () => {
+        const client = new EHIClient()
+        const res = await client.customize("bad-id")
+        expect(res.status).to.equal(404);
+        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
     })
 
-    it ('accepts customization parameters', async () => {
+    it ("accepts customization parameters", async () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId, {
@@ -61,12 +77,30 @@ describe("Kick off", () => {
                 other            : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Other"             }
             }
         })
-
-        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
-        // console.log(manifest)
         expect(manifest).to.exist;
+    })
 
+    it ("rejects double customization", async () => {
+        const parameters = {
+            medicalRecord    : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Medical Record"    },
+            visits           : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Clinic Visits"     },
+            dischargeSummary : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Discharge Summary" },
+            labs             : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Lab Reports"       },
+            operative        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Operative Reports" },
+            pathology        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Pathology Reports" },
+            radiation        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Radiation Reports" },
+            radiology        : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Radiology Reports" },
+            photographs      : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Photographs"       },
+            billing          : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Billing Records"   },
+            other            : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Other"             }
+        }
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId, { parameters })
+        const res = await client.customize(jobId, { parameters })
+        expect(res.status).to.equal(400);
+        expect(await res.text()).to.equal("Exports job already started");
     })
 })
 
@@ -82,7 +116,6 @@ describe ("status", () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.be.instanceOf(Object)
         expect(typeof manifest.transactionTime).to.equal("string")
@@ -100,21 +133,10 @@ describe ("status", () => {
         expect(res2.headers.get("retry-after")).to.exist;
     })
 
-    // it ('Replies properly while in awaiting approval', async () => {
-    //     const client = new EHIClient()
-    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
-    //     await client.customize(jobId)
-    //     const res2 = await client.request(status!);
-    //     expect(res2.status).to.equal(202);
-    //     expect(res2.headers.get("x-progress")).to.equal("in-review");
-    //     expect(res2.headers.get("retry-after")).to.exist;
-    // })
-
     it ('Replies properly while in progress', async () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         const res2 = await client.request(status!);
         expect(res2.status).to.equal(202);
         expect(res2.headers.get("x-progress")).to.equal("requested");
@@ -122,6 +144,41 @@ describe ("status", () => {
     })
 })
 
+describe ("job metadata", () => {
+
+    it ("rejects bad job IDs", async () => {
+        const client = new EHIClient()
+        const res = await client.getMetadata("bad-id")
+        expect(res.status).to.equal(404);
+        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
+    })
+
+    it ("provides metadata after export is complete", async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        const metaRes1 = await client.getMetadata(jobId)
+        expect(metaRes1.status).to.equal(200);
+        expect((await metaRes1.json()).manifest).to.be.null;
+        await client.waitForExport(status!)
+        const metaRes2 = await client.getMetadata(jobId)
+        expect(metaRes2.status).to.equal(200);
+        expect((await metaRes2.json()).manifest).to.not.be.null;
+    })
+
+    it ("provides metadata after export is complete", async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        const metaRes1 = await client.getMetadata(jobId)
+        expect(metaRes1.status).to.equal(200);
+        expect((await metaRes1.json()).manifest).to.be.null;
+        await client.waitForExport(status!)
+        const metaRes2 = await client.getMetadata(jobId)
+        expect(metaRes2.status).to.equal(200);
+        expect((await metaRes2.json()).manifest).to.not.be.null;
+    })
+})
 
 describe ("download", () => {
     
@@ -144,7 +201,6 @@ describe ("download", () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.exist;
         const url = manifest.output.find((x: any) => x.type === "Patient")!.url
@@ -158,121 +214,6 @@ describe ("download", () => {
         expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
     })
 
-    it ('Adding attachment requires file upload', async () => {
-        const client = new EHIClient()
-        const { jobId } = await client.kickOff(PATIENT_ID)
-        await request(SERVER.baseUrl)
-            .post("/jobs/" + jobId)
-            .field("action", "addAttachments")
-            .expect(400, 'The "addAttachments" action requires that one more files are upload via the "attachments" field')
-    })
-
-    // it ('Attachment files can be downloaded', async () => {
-    //     const client = new EHIClient()
-        
-    //     // Create export
-    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
-
-    //     await client.customize(jobId)
-
-    //     // Add files
-    //     await request(SERVER.baseUrl)
-    //     .post("/jobs/" + jobId)
-    //     .field("action", "addAttachments")
-    //     .attach("attachments", "test/fixtures/img3.png")
-    //     .attach("attachments", "test/fixtures/img2.png")
-    //     .expect(200)
-
-    //     // Approve
-    //     await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
-
-    //     // Fetch the manifest
-    //     const manifest = await client.waitForExport(status!)
-
-    //     // console.log(manifest)
-    //     expect(manifest).to.exist;
-
-    //     // Fetch the DocumentReference
-    //     const docRefEntry = manifest.output.find(x => x.type == "DocumentReference")
-    //     expect(docRefEntry).to.exist;
-    //     const res = await client.request(docRefEntry!.url)
-    //     const txt = await res.text()
-    //     const lines = txt.trim().split(/\n/).filter(Boolean)
-    //     expect(lines.length).to.equal(1)
-    //     const docRef = JSON.parse(lines[0])
-
-    //     // console.log(docRef.content)
-    //     expect(docRef.content.length).to.equal(2)
-    //     docRef.content.forEach((f: any) => {
-    //         expect(f.attachment.url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
-    //     })
-    // })
-
-    // it ("Can remove attachments", async () => {
-    //     const client = new EHIClient()
-    //     const { jobId } = await client.kickOff("fake-patient-id")
-    //     const { body: job } = await request(SERVER.baseUrl)
-    //     .post("/jobs/" + jobId)
-    //     .field("action", "addAttachments")
-    //     .attach("attachments", "test/fixtures/img3.png")
-    //     .attach("attachments", "test/fixtures/img2.png")
-    //     .expect(200)
-
-    //     const { body } = await request(SERVER.baseUrl)
-    //     .post("/jobs/" + jobId)
-    //     .send({ action: "removeAttachments", params: [ basename(job.attachments[0].url) ]})
-    //     .expect(200)
-        
-    //     // Verify that the job contains attachments
-    //     expect(body.attachments).to.be.an.instanceOf(Array)
-    //     expect(body.attachments.length).to.equal(1)
-    //     expect(body.attachments[0].url).to.contain(`${SERVER.baseUrl}/jobs/${jobId}/download/attachments/`)
-    // })
-
-    // it ("Can't remove attachments form rejected jobs", async () => {
-    //     const client = new EHIClient()
-    //     const { jobId } = await client.kickOff("fake-patient-id")
-
-    //     await request(SERVER.baseUrl)
-    //         .post("/jobs/" + jobId)
-    //         .send({ action: "reject" })
-    //         .expect(200)
-
-    //     await request(SERVER.baseUrl)
-    //         .post("/jobs/" + jobId)
-    //         .send({ action: "removeAttachments", params: [ "whatever" ]})
-    //         .expect(400, `Cannot remove attachments from export in "rejected" state`)
-    // })
-
-    // it ("Can't remove attachments form approved jobs", async () => {
-    //     const client = new EHIClient()
-    //     const { jobId } = await client.kickOff("fake-patient-id")
-
-    //     await client.customize(jobId)
-
-    //     await request(SERVER.baseUrl)
-    //         .post("/jobs/" + jobId)
-    //         .send({ action: "approve" })
-    //         .expect(200)
-
-    //     await request(SERVER.baseUrl)
-    //         .post("/jobs/" + jobId)
-    //         .send({ action: "removeAttachments", params: [ "whatever" ]})
-    //         .expect(400, `Cannot remove attachments from export in "requested" state`)
-    // })
-
-    // it ('Exports can be downloaded', async () => {
-    //     const client = new EHIClient()
-    //     const { status, jobId } = await client.kickOff(PATIENT_ID)
-    //     await client.customize(jobId)
-    //     await request(SERVER.baseUrl).post("/jobs/" + jobId).field("action", "approve")
-    //     await client.waitForExport(status!)
-    //     await request(SERVER.baseUrl)
-    //         .get("/jobs/" + jobId + "/download")
-    //         .expect(200)
-    //         .expect('content-type', 'application/zip')
-    //         .expect('content-disposition', /^attachment; filename=/)
-    // })
 })
 
 describe ("abort", () => {
@@ -288,7 +229,6 @@ describe ("abort", () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
     })
@@ -297,7 +237,6 @@ describe ("abort", () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
@@ -313,7 +252,6 @@ describe ("abort", () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
