@@ -1,10 +1,11 @@
-import path        from "path";
-import { expect }  from "chai";
 import "mocha"
-import { AddressInfo, Server } from "net"
-import server                  from "../../app"
-import { readdirSync, rmSync, statSync } from "fs";
+import path                              from "path"
+import { expect }                        from "chai"
+import { AddressInfo, Server }           from "net"
+import { readdirSync, rmSync, statSync } from "fs"
+import server                            from "../../app"
 import patients                          from "../../data/db"
+import { stop }                          from "../../lib/ExportJobManager"
 
 
 let testServer: Server | null
@@ -54,6 +55,7 @@ function cleanup() {
             rmSync(dir, { force: true, recursive: true })
         }
     }
+    stop()
 }
 
 export function getFirstPatientId() {

@@ -208,12 +208,6 @@ declare namespace EHI {
         id: string
 
         /**
-         * The ID of the exported patient
-         * @deprecated Use `patient.id` instead
-         */
-        patientId: string
-
-        /**
          * The ID and humanized name of the patient
          */
         patient: {

@@ -1,5 +1,5 @@
-import { expect } from "chai"
-import { wait } from "../../lib"
+import { expect }            from "chai"
+import { wait }              from "../../lib"
 import { authorize, SERVER } from "./TestContext"
 
 
@@ -38,21 +38,6 @@ export default class EHIClient
         }
     }
 
-    public async update(
-        jobId: string,
-        payload: {
-            action: "addAttachments" | "removeAttachments" | "approve" | "reject" | "customize",
-            [key: string]: any
-        }
-    ): Promise<Response>
-    {
-        return this.request(`${SERVER.baseUrl}/jobs/${jobId}`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-    }
-
     public async customize(
         jobId: string,
         payload: {
@@ -64,12 +49,11 @@ export default class EHIClient
         }
     ): Promise<Response>
     {
-        return this.update(jobId, { action: "customize", payload });
-    }
-
-    public async approve(jobId: string): Promise<Response>
-    {
-        return this.update(jobId, { action: "approve" });
+        return this.request(`${SERVER.baseUrl}/jobs/${jobId}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload)
+        });
     }
 
     public async waitForExport(statusLocation: string): Promise<EHI.ExportManifest> {
@@ -89,5 +73,9 @@ export default class EHIClient
 
     public async abort(jobId: string) {
         return this.request(`${SERVER.baseUrl}/jobs/${jobId}/status`, { method: "DELETE" })
+    }
+
+    public async getMetadata(jobId: string) {
+        return this.request(`${SERVER.baseUrl}/jobs/${jobId}/metadata`)
     }
 }

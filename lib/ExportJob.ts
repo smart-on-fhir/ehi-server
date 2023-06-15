@@ -1,68 +1,30 @@
-import Path               from "path"
-import crypto             from "crypto"
-import { Request }        from "express"
-import patients           from "../data/db"
-import config             from "../config"
-import { HttpError }      from "./errors"
-import {
-    existsSync,
-    readdirSync,
-    statSync,
-    rmSync
-} from "fs"
-import {
-    appendFile,
-    mkdir,
-    readFile,
-    writeFile
-} from "fs/promises"
-import {
-    getPath,
-    getRequestBaseURL,
-    humanName,
-    wait
-} from "."
+import Path                                            from "path"
+import {existsSync, rmSync }                           from "fs"
+import { appendFile, mkdir, readFile, writeFile }      from "fs/promises"
+import crypto                                          from "crypto"
+import { Request }                                     from "express"
+import patients                                        from "../data/db"
+import config                                          from "../config"
+import { HttpError }                                   from "./errors"
+import { getPath, getRequestBaseURL, humanName, wait } from "."
 
 
-interface ExportManifest {
-    transactionTime: string
-    requiresAccessToken: boolean
-    output: any[]
-    error: any[]
-}
-
-
-/**
- * Ideally, we'd have a reference implementation of the "Provider side" that
- * shows a bit of the back-office workflow around handling requests including.
- * We've talked with several administrators responsible for "health information
- * management" departments of hospitals, and a common theme is that they rely on
- * internal workflows for preparing and reviewing the material for exports.
- * Without getting too complex in terms of project scope, I was thinking that a
- * couple of really useful features on the provider side to reflect real world
- * conditions would be:  
- * 
- * 1. Ability to configure an online form that patients fill out in the process
- * of initiating an export (example: sections C and D of this form, but of
- * course there would be no reason for us to use PDFs)
- * 2. UX for provider staff to track and manage the "Export Tasks" and
- *  - Add results to a task (e.g., dragging a CSV file into the browser to
- *    simulate the manual gathering of data from different underlying systems)
- *  - Mark an export as "Ready for release" (i.e., triggering its availability
- *    to the patient)
- */
 export default class ExportJob
 {
+    /**
+     * Each export job has an unique hex string ID
+     */
     readonly id: string;
 
-    patientId: string;
-
-    patient: {
+    /**
+     * The patient who's data is being exported (only ID and humanized name)
+     */
+    readonly patient: {
         id: string
         name: string
     };
 
-    manifest: ExportManifest | null = null;
+    manifest: EHI.ExportManifest | null = null;
 
     status: EHI.ExportJobStatus = "awaiting-input";
 
@@ -153,9 +115,11 @@ export default class ExportJob
     public static async byId(id: string)
     {
         try {
-            const instance = new ExportJob("tmp", id)
-            await instance.load()
-            return instance
+            const path = Path.join(config.jobsDir, id, "job.json")
+            const json = JSON.parse(await readFile(path, "utf8"))
+            const job = new ExportJob(json.patient.id, json.id)
+            Object.assign(job, json)
+            return job
         } catch {
             throw new HttpError("Export job not found! Perhaps it has already completed.").status(404)
         }
@@ -168,14 +132,14 @@ export default class ExportJob
      * constructors cannot be async. `ExportManager.create()` can be used instead
      * @param patientId The ID of the exported patient
      */
-    protected constructor(patientId: string, _jobId?: string) {
+    protected constructor(patientId: string, _jobId?: string)
+    {
         this.id = _jobId || crypto.randomBytes(8).toString("hex")
         this.createdAt = Date.now()
-        const pt = patients.get(patientId)?.patient
-        this.patientId = patientId
+        const pt = patients.get(patientId)!.patient as fhir4.Patient
         this.patient = {
             id: patientId,
-            name: pt ? humanName(pt) : "Unknown Patient Name"
+            name: humanName(pt)
         }
         this.path = Path.join(config.jobsDir, this.id)
     }
@@ -329,19 +293,10 @@ export default class ExportJob
         return this;
     }
 
-    protected async load()
-    {
-        const path = Path.join(this.path, "job.json")
-        const json = JSON.parse(await readFile(path, "utf8"));
-        Object.assign(this, json)
-        return this;
-    }
-
     public toJSON(): EHI.ExportJob
     {
         return {
             id            : this.id,
-            patientId     : this.patient.id,
             patient       : this.patient,
             manifest      : this.manifest,
             status        : this.status,
@@ -352,27 +307,17 @@ export default class ExportJob
         }
     }
 
-    public setParameters(parameters: EHI.ExportJobInformationParameters) {
-        this.parameters = parameters
-        return this
-    }
-
-    public setAuthorizations(authorizations: EHI.ExportJobAuthorizations) {
-        this.authorizations = authorizations
-        return this
-    }
-}
-
-export async function check(dir = "jobs")
-{
-    const base  = Path.join(__dirname, "..", dir)
-    const items = readdirSync(base);
-    for (const id of items) {
-        if (statSync(Path.join(base, id)).isDirectory()) {
-            await ExportJob.destroyIfNeeded(id)
+    public async customizeAndStart(req: Request)
+    {
+        if (this.status !== "awaiting-input") {
+            throw new HttpError('Exports job already started').status(400)
         }
+        this.parameters     = req.body.parameters
+        this.authorizations = req.body.authorizations
+        this.status = "requested"
+        await this.save()
+        this.kickOff(req); // DON'T WAIT FOR THIS!
+        return this
     }
-    setTimeout(check.bind(null, dir), config.jobCleanupMinutes * 60000).unref()
 }
 
-check();

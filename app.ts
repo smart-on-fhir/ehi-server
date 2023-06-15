@@ -1,15 +1,16 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
-import cors                    from "cors"
-import { AddressInfo }         from "net"
-import config                  from "./config"
-import { HttpError }           from "./lib/errors"
-import patients                from "./data/db"
-import * as Gateway            from "./lib/EHIGateway"
-import AuthorizeHandler        from "./lib/authorize"
-import TokenHandler            from "./lib/token"
-import getMetadata             from "./lib/metadata"
-import getWellKnownSmartConfig from "./lib/smart-configuration"
+import cors                              from "cors"
+import { AddressInfo }                   from "net"
+import config                            from "./config"
+import { HttpError }                     from "./lib/errors"
+import patients                          from "./data/db"
+import * as Gateway                      from "./lib/EHIGateway"
+import AuthorizeHandler                  from "./lib/authorize"
+import TokenHandler                      from "./lib/token"
+import getMetadata                       from "./lib/metadata"
+import getWellKnownSmartConfig           from "./lib/smart-configuration"
 import { asyncRouteWrap, validateToken } from "./lib"
+import { start }                         from "./lib/ExportJobManager"
 
 
 
@@ -70,9 +71,10 @@ app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 // download resource file
 app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
 
-// update job
-app.post("/jobs/:id", asyncRouteWrap(Gateway.customize))
+// customize and start job
+app.post("/jobs/:id", asyncRouteWrap(Gateway.customizeAndStart))
 
+// get job info
 app.get("/jobs/:id/metadata", asyncRouteWrap(Gateway.getJobMetadata))
 
 
@@ -88,6 +90,8 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     /* istanbul ignore next */
     res.status(error.code || 500).json({ error: error.message || 'Internal Server Error' });
 })
+
+start()
 
 // istanbul ignore next - Only start is not imported imported
 if (require.main?.filename === __filename) {
