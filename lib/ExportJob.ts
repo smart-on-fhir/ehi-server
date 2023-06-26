@@ -67,9 +67,7 @@ export default class ExportJob
      */
     public static async create(patientId: string)
     {
-        const job = new ExportJob(patientId)
-        await job.save()
-        return job
+        return new ExportJob(patientId).save()
     }
 
     public async destroy()
@@ -290,6 +288,7 @@ export default class ExportJob
             JSON.stringify(this, null, 4),
             "utf8"
         );
+
         return this;
     }
 
