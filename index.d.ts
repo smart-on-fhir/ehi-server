@@ -4,29 +4,6 @@ declare namespace SMART {
     // confidential-symmetric clients
     type SMARTClientType = "public" | "confidential-symmetric"
     
-    interface AuthorizeParams {
-        response_type: "code" | "token"
-        client_id: string
-        redirect_uri: string
-        launch?: string
-        scope: string
-        state: string
-        aud: string
-
-        code_challenge_method?: "S256"
-        code_challenge?: string
-        // jwks_url?: string
-        
-        // These can be set by dialogs
-        patient?: string
-        provider?: string
-        encounter?: string
-        auth_success?: "0" | "1"
-        login_success?: string
-
-
-        nonce?: string
-    }
 
     /**
      * Once an app is authorized, the token response will include any context

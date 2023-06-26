@@ -59,10 +59,7 @@ export async function checkStatus(req: Request, res: Response) {
 
     res.header("X-Progress" , job.status)
     res.header("Retry-after", config.jobCleanupMinutes * 60 + "")
-    res.status(202)
-    // See last para of https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html#status-request
-    res.json(job)
-    return res.end()
+    res.status(202).end()
 }
 
 export async function kickOff(req: Request, res: Response) {
@@ -70,9 +67,8 @@ export async function kickOff(req: Request, res: Response) {
     const job = await ExportJob.create(req.params.id)
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
-    res.header("Link", `${baseUrl}/jobs/${job.id}/customize?behavior=automatic&_patient=${req.params.id}; rel="patient-interaction"`)
-    res.status(202)
-    res.json({ message: "Please follow the url in the link header to customize your export" })
+    res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${req.params.id}; rel="patient-interaction"`)
+    res.status(202).json({ message: "Please follow the url in the link header to customize your export" })
 }
 
 export async function renderForm(req: Request, res: Response) {

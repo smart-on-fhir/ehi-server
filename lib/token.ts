@@ -117,10 +117,10 @@ export default class TokenHandler {
     public generateRefreshToken(code: SMART.AuthorizationToken): string {
         let token = {
             context: code.context,
-            // client_id : code.client_id,
+            // client_id: code.client_id,
             scope: code.scope,
             user: code.user,
-            // iat       : code.iat,
+            // iat: code.iat,
         };
 
         return jwt.sign(token, config.jwtSecret, {
