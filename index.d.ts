@@ -4,29 +4,6 @@ declare namespace SMART {
     // confidential-symmetric clients
     type SMARTClientType = "public" | "confidential-symmetric"
     
-    interface AuthorizeParams {
-        response_type: "code" | "token"
-        client_id: string
-        redirect_uri: string
-        launch?: string
-        scope: string
-        state: string
-        aud: string
-
-        code_challenge_method?: "S256"
-        code_challenge?: string
-        // jwks_url?: string
-        
-        // These can be set by dialogs
-        patient?: string
-        provider?: string
-        encounter?: string
-        auth_success?: "0" | "1"
-        login_success?: string
-
-
-        nonce?: string
-    }
 
     /**
      * Once an app is authorized, the token response will include any context
@@ -208,12 +185,6 @@ declare namespace EHI {
         id: string
 
         /**
-         * The ID of the exported patient
-         * @deprecated Use `patient.id` instead
-         */
-        patientId: string
-
-        /**
          * The ID and humanized name of the patient
          */
         patient: {
@@ -243,13 +214,7 @@ declare namespace EHI {
          */
         completedAt: number
 
-        /**
-         * Array of additional attachments which should be made available via
-         * DocumentReference
-         */
-        attachments: fhir4.Attachment[],
-
-        parameters?: ExportJobInformationParameters,
+        parameters?: ExportJobInformationParameters
 
         authorizations?: ExportJobAuthorizations
     }
@@ -291,29 +256,6 @@ declare namespace EHI {
         sexualAssault   ?: ExportJobAuthorization,
         genetic         ?: ExportJobAuthorization,
         other           ?: ExportJobAuthorization
-    }
-
-    interface Attachment {
-        
-        /**
-         * Mime type of the content, with charset etc.
-         */
-        contentType: string
-        
-        /**
-         * Data inline, base64ed
-         */
-        data?: string
-
-        /**
-         * Uri where the data can be found
-         */
-        url?: string
-
-        /**
-         * Number of bytes of content (if url provided)
-         */
-        size: number
     }
 
 }

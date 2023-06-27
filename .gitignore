@@ -109,4 +109,3 @@ jobs/*
 !jobs/.gitkeep
 uploads/*
 !uploads/.gitkeep
-data/tmp/*

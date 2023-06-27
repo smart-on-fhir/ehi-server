@@ -28,7 +28,7 @@ html(lang="en")
                     tbody
                         each parameter, key in job.parameters
                             if (parameter.group === 1)
-                                tr(data-key=key data-name=parameter.name)
+                                tr(data-key=key data-name=parameter.name data-group=1)
                                     td: label
                                         input(type="checkbox" checked=parameter.enabled)
                                         |  #{parameter.name}
@@ -64,7 +64,7 @@ html(lang="en")
                     tbody
                         each parameter, key in job.parameters
                             if (parameter.group === 2)
-                                tr(data-key=key data-name=parameter.name)
+                                tr(data-key=key data-name=parameter.name data-group=2)
                                     td: label
                                         input(type="checkbox" checked=parameter.enabled)
                                         |  #{parameter.name}
@@ -138,19 +138,18 @@ html(lang="en")
                     e.preventDefault()
 
                     const body = {
-                        action: "customize",
-                        payload: {
-                            parameters   : {},
-                            authorizations: {}
-                        }
+                        parameters   : {},
+                        authorizations: {}
                     };
 
                     $("tr[data-key]").each((i, tr) => {
                         const $tr = $(tr)
                         const key = $tr.data("key")
                         const name = $tr.data("name")
-                        body.payload.parameters[key] = {
+                        const group = $tr.data("group")
+                        body.parameters[key] = {
                             name,
+                            group,
                             enabled: $('[type="checkbox"]', tr).prop("checked"),
                             from   : $('[name="from"]', tr).prop("valueAsDate")?.toISOString(),
                             to     : $('[name="to"]', tr).prop("valueAsDate")?.toISOString(),
@@ -161,7 +160,7 @@ html(lang="en")
                     $('.checkbox-row input[type="checkbox"]').each((i, cb) => {
                         const $cb  = $(cb)
                         const name = $cb.attr("name")
-                        const rec  = body.payload.authorizations[name] = { name: $cb.attr("title"), value: false }
+                        const rec  = body.authorizations[name] = { name: $cb.attr("title"), value: false }
                         if ($cb.prop("checked")) {
                             if (name === "other" || name === "genetic") {
                                 rec.value = $cb.closest(".checkbox-row").find('input[type="text"]').val()
