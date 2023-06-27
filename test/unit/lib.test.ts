@@ -1,9 +1,11 @@
-import { expect } from "chai"
-import { basename, join } from "path"
-import config from "../../config"
-import { getPrefixedFilePath, validateParam } from "../../lib"
-import { OAuthError } from "../../lib/errors"
-import ExportJob, { check } from "../../lib/ExportManager"
+import { expect }                             from "chai"
+import { basename, join }                     from "path"
+import config                                 from "../../config"
+import { getPrefixedFilePath, humanName, validateParam } from "../../lib"
+import { OAuthError }                         from "../../lib/errors"
+import ExportJob                              from "../../lib/ExportJob"
+import { check }                              from "../../lib/ExportJobManager"
+import { FIRST_PATIENT_ID }                   from "../integration/TestContext"
 
 describe("lib", () => {
     describe("validateParam", () => {
@@ -58,40 +60,39 @@ describe("lib", () => {
     describe("jobs", () => {
 
         it ("destroy", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             await job.destroy()
         })
 
         it ("destroyIfNeeded for aborted jobs", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "aborted"
-            await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
 
         it ("destroyIfNeeded for rejected jobs", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "rejected"
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
 
         it ("destroyIfNeeded for retrieved jobs", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "retrieved"
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
 
         it ("destroyIfNeeded for in-review jobs", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "in-review"
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
 
         it ("destroyIfNeeded for jobs awaiting input", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "awaiting-input"
             // @ts-ignore
             job.createdAt = Date.now() - config.jobMaxLifetimeMinutes * 60001
@@ -100,11 +101,38 @@ describe("lib", () => {
         })
 
         it ("check for aborted jobs", async () => {
-            const job = await ExportJob.create("xyz")
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "aborted"
             await job.save()
             await check("test-jobs")
         }) 
 
+    })
+
+    describe("humanName", () => {
+
+        it ("humanName({}) -> 'No Name Listed'", () => {
+            expect(humanName({} as any)).to.equal("No Name Listed")
+        })
+
+        it ("humanName({ name: [] }) -> 'No Name Listed'", () => {
+            expect(humanName({ name: [] } as any)).to.equal("No Name Listed")
+        })
+
+        it ("humanName({ name: { family: 'a' }}) -> 'a'", () => {
+            expect(humanName({ name: { family: 'a' } } as any)).to.equal("a")
+        })
+
+        it ("humanName({ name: [{ family: 'a' }]}) -> 'a'", () => {
+            expect(humanName({ name: [{ family: 'a' }] } as any)).to.equal("a")
+        })
+
+        it ("humanName({ name: [{ given: 'g', suffix: 's' }]}) -> 'g, s'", () => {
+            expect(humanName({ name: [{ given: 'g', suffix: 's' }]} as any)).to.equal("g, s")
+        })
+
+        it ("humanName({ name: [{ given: 'g', family: ['f', 'f'], suffix: 's' }]}) -> 'g f f, s'", () => {
+            expect(humanName({ name: [{ given: 'g', family: ['f', 'f'], suffix: 's' }]} as any)).to.equal("g f f, s")
+        })
     })
 })

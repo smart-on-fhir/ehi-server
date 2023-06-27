@@ -1,71 +1,30 @@
-import Path, { basename } from "path"
-import crypto             from "crypto"
-import { Request }        from "express"
-import patients           from "../data/db"
-import config             from "../config"
-import { HttpError }      from "./errors"
-import {
-    existsSync,
-    readdirSync,
-    statSync,
-    rmSync
-} from "fs"
-import {
-    appendFile,
-    copyFile,
-    mkdir,
-    readFile,
-    unlink,
-    writeFile
-} from "fs/promises"
-import {
-    getPath,
-    getPrefixedFilePath,
-    getRequestBaseURL,
-    humanName,
-    wait
-} from "."
+import Path                                            from "path"
+import {existsSync, rmSync }                           from "fs"
+import { appendFile, mkdir, readFile, writeFile }      from "fs/promises"
+import crypto                                          from "crypto"
+import { Request }                                     from "express"
+import patients                                        from "../data/db"
+import config                                          from "../config"
+import { HttpError }                                   from "./errors"
+import { getPath, getRequestBaseURL, humanName, wait } from "."
 
 
-interface ExportManifest {
-    transactionTime: string
-    requiresAccessToken: boolean
-    output: any[]
-    error: any[]
-}
-
-
-/**
- * Ideally, we'd have a reference implementation of the "Provider side" that
- * shows a bit of the back-office workflow around handling requests including.
- * We've talked with several administrators responsible for "health information
- * management" departments of hospitals, and a common theme is that they rely on
- * internal workflows for preparing and reviewing the material for exports.
- * Without getting too complex in terms of project scope, I was thinking that a
- * couple of really useful features on the provider side to reflect real world
- * conditions would be:  
- * 
- * 1. Ability to configure an online form that patients fill out in the process
- * of initiating an export (example: sections C and D of this form, but of
- * course there would be no reason for us to use PDFs)
- * 2. UX for provider staff to track and manage the "Export Tasks" and
- *  - Add results to a task (e.g., dragging a CSV file into the browser to
- *    simulate the manual gathering of data from different underlying systems)
- *  - Mark an export as "Ready for release" (i.e., triggering its availability
- *    to the patient)
- */
 export default class ExportJob
 {
+    /**
+     * Each export job has an unique hex string ID
+     */
     readonly id: string;
 
-    patientId: string;
-
-    patient: {
+    /**
+     * The patient who's data is being exported (only ID and humanized name)
+     */
+    readonly patient: {
         id: string
         name: string
     };
 
-    manifest: ExportManifest | null = null;
+    manifest: EHI.ExportManifest | null = null;
 
     status: EHI.ExportJobStatus = "awaiting-input";
 
@@ -74,8 +33,6 @@ export default class ExportJob
     protected createdAt: number = 0;
 
     protected completedAt: number = 0;
-
-    protected attachments: fhir4.Attachment[] = [];
     
     protected parameters: EHI.ExportJobInformationParameters = {
 
@@ -110,9 +67,7 @@ export default class ExportJob
      */
     public static async create(patientId: string)
     {
-        const job = new ExportJob(patientId)
-        await job.save()
-        return job
+        return new ExportJob(patientId).save()
     }
 
     public async destroy()
@@ -158,9 +113,11 @@ export default class ExportJob
     public static async byId(id: string)
     {
         try {
-            const instance = new ExportJob("tmp", id)
-            await instance.load()
-            return instance
+            const path = Path.join(config.jobsDir, id, "job.json")
+            const json = JSON.parse(await readFile(path, "utf8"))
+            const job = new ExportJob(json.patient.id, json.id)
+            Object.assign(job, json)
+            return job
         } catch {
             throw new HttpError("Export job not found! Perhaps it has already completed.").status(404)
         }
@@ -173,62 +130,16 @@ export default class ExportJob
      * constructors cannot be async. `ExportManager.create()` can be used instead
      * @param patientId The ID of the exported patient
      */
-    protected constructor(patientId: string, _jobId?: string) {
+    protected constructor(patientId: string, _jobId?: string)
+    {
         this.id = _jobId || crypto.randomBytes(8).toString("hex")
         this.createdAt = Date.now()
-        const pt = patients.get(patientId)?.patient
-        this.patientId = patientId
+        const pt = patients.get(patientId)!.patient as fhir4.Patient
         this.patient = {
             id: patientId,
-            name: pt ? humanName(pt) : "Unknown Patient Name"
+            name: humanName(pt)
         }
         this.path = Path.join(config.jobsDir, this.id)
-    }
-
-    /**
-     * Add results to a task (e.g., dragging a CSV file into the browser to
-     * simulate the manual gathering of data from different underlying systems)
-     */
-    public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
-        const src = Path.join(__dirname, "..", attachment.path)
-        const dst = Path.join(this.path, "attachments")
-        const path = getPrefixedFilePath(dst, attachment.originalname)
-        const filename = basename(path)
-        await mkdir(dst, { recursive: true });
-        await copyFile(src, path);
-        this.attachments.push({
-            title: filename,
-            contentType: attachment.mimetype,
-            size: attachment.size,
-            url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
-        });
-        await this.save()
-        await unlink(src)
-    }
-
-    public async addAttachments(req: Request) {
-        const files = (req.files as any[] || []).filter(f => f.fieldname === "attachments")
-        if (files.length) {
-            const baseUrl = getRequestBaseURL(req)
-            for (const file of files) {
-                await this.addAttachment(file, baseUrl)
-            }
-        }
-    }
-
-    public async removeAttachment(fileName: string) {
-        if (this.status !== "awaiting-input" && this.status !== "in-review") {
-            throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
-        }
-        
-        this.attachments = this.attachments.filter(x => !x.url!.endsWith(`/${this.id}/download/attachments/${fileName}`))
-        await this.save()
-    }
-
-    public async removeAttachments(fileNames: string[]) {
-        for (const fileName of fileNames) {
-            await this.removeAttachment(fileName)
-        }
     }
 
     public async abort()
@@ -328,7 +239,10 @@ export default class ExportJob
             transactionTime: new Date(this.createdAt).toISOString(),
             requiresAccessToken: true,
             output: [] as any[],
-            error: [] as any[]
+            error: [] as any[],
+            extension: {
+                metadata: `${baseUrl}/jobs/${this.id}/metadata`
+            }
         };
 
         // Create a function add every single resource
@@ -357,21 +271,6 @@ export default class ExportJob
             await wait(config.jobThrottle)
         }
 
-        if (this.attachments.length) {
-            await addOutputEntry<fhir4.DocumentReference>({
-                resourceType: "DocumentReference",
-                status: "current",
-                subject: { reference: "Patient/" + this.patient.id },
-                content: this.attachments.map(f => ({ attachment: f })),
-                meta: {
-                    tag: [{
-                        code: "ehi-export",
-                        display: "generated as part of an ehi-export request"
-                    }
-                ]}
-            }, true)
-        }
-
         this.completedAt = Date.now()
         this.manifest = manifest
         this.status = "retrieved"
@@ -389,14 +288,7 @@ export default class ExportJob
             JSON.stringify(this, null, 4),
             "utf8"
         );
-        return this;
-    }
 
-    protected async load()
-    {
-        const path = Path.join(this.path, "job.json")
-        const json = JSON.parse(await readFile(path, "utf8"));
-        Object.assign(this, json)
         return this;
     }
 
@@ -404,39 +296,27 @@ export default class ExportJob
     {
         return {
             id            : this.id,
-            patientId     : this.patient.id,
             patient       : this.patient,
             manifest      : this.manifest,
             status        : this.status,
             createdAt     : this.createdAt,
             completedAt   : this.completedAt,
-            attachments   : this.attachments,
             parameters    : this.parameters,
             authorizations: this.authorizations
         }
     }
 
-    public setParameters(parameters: EHI.ExportJobInformationParameters) {
-        this.parameters = parameters
-        return this
-    }
-
-    public setAuthorizations(authorizations: EHI.ExportJobAuthorizations) {
-        this.authorizations = authorizations
-        return this
-    }
-}
-
-export async function check(dir = "jobs")
-{
-    const base  = Path.join(__dirname, "..", dir)
-    const items = readdirSync(base);
-    for (const id of items) {
-        if (statSync(Path.join(base, id)).isDirectory()) {
-            await ExportJob.destroyIfNeeded(id)
+    public async customizeAndStart(req: Request)
+    {
+        if (this.status !== "awaiting-input") {
+            throw new HttpError('Exports job already started').status(400)
         }
+        this.parameters     = req.body.parameters
+        this.authorizations = req.body.authorizations
+        this.status = "requested"
+        await this.save()
+        this.kickOff(req); // DON'T WAIT FOR THIS!
+        return this
     }
-    setTimeout(check.bind(null, dir), config.jobCleanupMinutes * 60000).unref()
 }
 
-check();

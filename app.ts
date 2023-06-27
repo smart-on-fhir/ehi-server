@@ -1,28 +1,21 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
-import cors                    from "cors"
-import { AddressInfo }         from "net"
-import multer                  from "multer"
-import config                  from "./config"
-import { HttpError }           from "./lib/errors"
-import patients                from "./data/db"
-import * as Gateway            from "./lib/EHIGateway"
-import AuthorizeHandler        from "./lib/authorize"
-import TokenHandler            from "./lib/token"
-import getMetadata             from "./lib/metadata"
-import getWellKnownSmartConfig from "./lib/smart-configuration"
+import cors                              from "cors"
+import { AddressInfo }                   from "net"
+import config                            from "./config"
+import { HttpError }                     from "./lib/errors"
+import patients                          from "./data/db"
+import * as Gateway                      from "./lib/EHIGateway"
+import AuthorizeHandler                  from "./lib/authorize"
+import TokenHandler                      from "./lib/token"
+import getMetadata                       from "./lib/metadata"
+import getWellKnownSmartConfig           from "./lib/smart-configuration"
 import { asyncRouteWrap, validateToken } from "./lib"
+import { start }                         from "./lib/ExportJobManager"
 
 
 
 const app = express()
 
-const upload = multer({
-    dest: "uploads/",
-    limits: {
-        files: 5,
-        fileSize: 1024 * 1024 * 10 // 10MB
-    }
-})
 
 app.use(cors({ origin: true, credentials: true }))
 app.set('view engine', 'pug');
@@ -75,31 +68,15 @@ app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
 // Render job customization form
 app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
 
-// download attachment file
-app.get("/jobs/:id/download/attachments/:file", requireAuth, asyncRouteWrap(Gateway.downloadAttachment))
-
 // download resource file
 app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
 
+// customize and start job
+app.post("/jobs/:id", asyncRouteWrap(Gateway.customizeAndStart))
 
-// API -------------------------------------------------------------------------
-// download as zip
-app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
+// get job info
+app.get("/jobs/:id/metadata", asyncRouteWrap(Gateway.getJobMetadata))
 
-// browse jobs
-app.get("/jobs", asyncRouteWrap(Gateway.listJobs))
-
-// view job
-app.get("/jobs/:id", asyncRouteWrap(Gateway.viewJob))
-
-// update job
-app.post("/jobs/:id", upload.array("attachments", 10), asyncRouteWrap(Gateway.updateJob))
-
-// delete job
-app.delete("/jobs/:id", asyncRouteWrap(Gateway.abort))
-
-// download as zip
-app.get("/jobs/:id/download", asyncRouteWrap(Gateway.downloadArchive))
 
 // Other -----------------------------------------------------------------------
 
@@ -113,6 +90,8 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     /* istanbul ignore next */
     res.status(error.code || 500).json({ error: error.message || 'Internal Server Error' });
 })
+
+start()
 
 // istanbul ignore next - Only start is not imported imported
 if (require.main?.filename === __filename) {

@@ -138,11 +138,8 @@ html(lang="en")
                     e.preventDefault()
 
                     const body = {
-                        action: "customize",
-                        payload: {
-                            parameters   : {},
-                            authorizations: {}
-                        }
+                        parameters   : {},
+                        authorizations: {}
                     };
 
                     $("tr[data-key]").each((i, tr) => {
@@ -150,7 +147,7 @@ html(lang="en")
                         const key = $tr.data("key")
                         const name = $tr.data("name")
                         const group = $tr.data("group")
-                        body.payload.parameters[key] = {
+                        body.parameters[key] = {
                             name,
                             group,
                             enabled: $('[type="checkbox"]', tr).prop("checked"),
@@ -163,7 +160,7 @@ html(lang="en")
                     $('.checkbox-row input[type="checkbox"]').each((i, cb) => {
                         const $cb  = $(cb)
                         const name = $cb.attr("name")
-                        const rec  = body.payload.authorizations[name] = { name: $cb.attr("title"), value: false }
+                        const rec  = body.authorizations[name] = { name: $cb.attr("title"), value: false }
                         if ($cb.prop("checked")) {
                             if (name === "other" || name === "genetic") {
                                 rec.value = $cb.closest(".checkbox-row").find('input[type="text"]').val()

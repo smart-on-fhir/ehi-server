@@ -1,113 +1,65 @@
 # ehi-server
+This is an EHI Export Server POC implementation based on https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html. The server supports the following routes:
 
-- [POST /fhir/Patient/:id/$ehi-export](#kick-off) - Start new export
-- [GET /fhir/Patient/:id/$ehi-export/customize](#customize-export) - Render export customization form
+**EHI Export**
 
-## Kick-off
----
-Starts new export job.
-### Request
-- expects json mime type unless no POST body is sent 
-- Requires valid bearer token
-- If Parameters resource is not sent in the body, a Link header to the customization form should be returned.
+|        |                                   |                                   |
+|-------:|-----------------------------------|-----------------------------------|
+|`POST`  | `/fhir/Patient/:id/$ehi-export`   | kick-off EHI export               |
+|`GET`   | `/jobs/:id/customize`             | render job customization form     |
+|`POST`  | `/jobs/:id`                       | customize and start job           |
+|`GET`   | `/jobs/:id/status`                | get job status                    |
+|`DELETE`| `/jobs/:id/status`                | abort/delete job                  |
+|`GET`   | `/jobs/:id/download/:resourceType`| download resource file            |
+|`GET`   | `/jobs/:id/metadata`              | get job info ***(proprietary)***  |
 
-Example:
-```http
-POST /fhir/Patient/:id/$ehi-export
-authorization: Bearer ...
-content-type: application/json
-```
 
-### Response
-- If the export started successfully returns 202
-- Status
-  - `202 Accepted` - if the export has been started
-  - `200 OK`       - If we require further params
-  - `4XX or 5XX`   - in case of error
-- Headers
-  - `Content-Location` - sent if the export has been started
-  - `Link` - sent if the export requires further customization
-- Body
-  - JSON FHIR OperationOutcome - required in case of error and optional otherwise 
+**SMART & FHIR**
+
+|      |                                       |                                 |
+|-----:|---------------------------------------|---------------------------------|
+|`GET` |`/auth/authorize`                      | Starts the authorization flow   |
+|`POST`|`/auth/token`                          | Get access or refresh token     |
+|`GET` |`/authorize-app`                       | Renders the authorize app dialog|
+|`GET` |`/patient-login`                       | Renders the patient login dialog|
+|`GET` |`/fhir/.well-known/smart-configuration`| WellKnown SMART Configuration   |
+|`GET` |`/fhir/metadata`                       | FHIR CapabilityStatement        |
 
 
 
-## Customize Export
----
-Render HTML form to customize a kick-off request. When the form is submitted it
-builds a `Parameters` resource and sends it via new POST request to the kick-off
-endpoint.
+## EHI Export Flow for Clients
+----
 
-## Status - `GET /jobs/:id/status`
----
-Get job status
-#### Request
-- Headers
-  - `authorization` - Requires valid bearer token
-#### Response
-- Status
-  - `200 OK` - If the export is ready
-  - `202 Accepted` - while the export is in progress
-  - `4XX or 5XX` - in case of error
-- Body
-  - JSON FHIR OperationOutcome - required in case of error and optional otherwise 
-
-
-## Abort - `DELETE /jobs/:id/status`
----
-Abort/delete job
-#### Request
-- Headers
-  - `authorization` - Requires valid bearer token
-#### Response
-- Status
-  - `202 Accepted` - if the job was found and removed
-  - `4XX or 5XX` - in case of error
-- Body
-  - JSON FHIR OperationOutcome - required in case of error and optional otherwise 
-
-## Download File - `GET /jobs/:id/download/:resourceType`
----
-Download a file
-
-## List Jobs - `GET /jobs` (**for admins**)
----
-- Returns a list of all the export jobs currently available on the server. The
-actual shape of the returned JSON object will be determined later.
-#### Response
-- Status
-  - `200` OK` - if the request is OK and even of we don't have any jobs at the moment
-  - `4XX or 5XX` - in case of error
-- Headers
-  - `Content-type`: `application/json`
-- Body
-  - JSON TBD
+1. Kick-off
+   ```http
+   POST /fhir/Patient/:id/$ehi-export
+   authorization: Bearer ...
+   content-type: application/json
+   ```
+2. Inspect kick-off response headers
+   - `Content-Location` - sent if the export has been started
+   - `Link` - sent if the export requires further customization
+3. If `Link` header is sent, redirect the user there to customize and start the export
+4. Wait! Pooling can be used to check periodically at `/jobs/:id/status`.
+   - If the response status code is `202` schedule another check for later and exit
+   - If the response status code is `200` the export is complete. Save the response manifest and proceed to #5.
+   - Any other response status code - print an error and exit
+5. Download the NDJSON files listed in the manifest. You only have a limited amount of time to do so before they expire.
+6. Optionally send a DELETE request to the status endpoint to let the server know that the exported data can be deleted
 
 
-## View Job - `GET /jobs/:id` (**for admins**)
----
-- Returns information about the export job specified by the `id` URL parameter
-#### Response
-- Status
-  - `200` OK` - if the job is found
-  - `4XX or 5XX` - in case of error
-- Headers
-  - `Content-type`: `application/json`
-- Body
-  - JSON TBD
 
-## Update job - `POST /jobs/:id` (**for admins**)
----
-Update job (approve, reject, add files...)
+## Proprietary Additions
+----
+There are several things that we had to add in our implementation to improve usability. The EHI Export specification is in it's early proposal stage. We assume that some of these additions may
+be standardized later. They are listed here for clarity.
+- `GET /jobs/:id/metadata` - While the proposed API is good enough to make EHI exports, client
+   apps may want to show more info about the export job. For example, the administrator might want
+   to see the options chosen py the patient in the customization form in order to decide if some
+   files need to bedded before the export is approved. To enable this we include a `/jobs/:id/metadata` as well as a link to it in the manifest extensions.
+- To make the `kick-off` endpoint callable from web apps we have to use CORS. This will hide most
+   response headers from clients, unless otherwise specified. For that reason we had to add
+   `Access-Control-Expose-Headers: Link, Content-Location` to our response headers. For more info
+   see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
 
-<br/>
-<br/>
-<br/>
 
-## Questions
-1. The export customization form is "owned" by the server. Every provider may have different parameters, thus will provide a different form. That form is the same for every client. That said,
-the form can catch it's submit event, build a `Parameters` resource and POST it to the kick-off endpoint to start the request. However, the kick-off endpoint will require valid access token which is owned/provided by the client. QUESTION: should we consider standard way to pass this access token?
-2. Can the customization form location be under the kick-off path (for example `{kick-off path}/`)? This way the form can simply submit to `../`. Otherwise the `Link` header that is returned by the kick-off call may have to include some kind of query parameter to tell the form where to submit to. Note that all this might be irrelevant if we can assume that the kick-off URL is well-known, fixed and can be hardcoded in the form action attribute.
-3. The Kickoff endpoint should be callable from client apps which leads to the following:
-  - CORS must be supported
-  - `Access-Control-Expose-Headers: Link, Content-Location` response header must be set. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
