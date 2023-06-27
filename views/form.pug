@@ -28,7 +28,7 @@ html(lang="en")
                     tbody
                         each parameter, key in job.parameters
                             if (parameter.group === 1)
-                                tr(data-key=key data-name=parameter.name)
+                                tr(data-key=key data-name=parameter.name data-group=1)
                                     td: label
                                         input(type="checkbox" checked=parameter.enabled)
                                         |  #{parameter.name}
@@ -64,7 +64,7 @@ html(lang="en")
                     tbody
                         each parameter, key in job.parameters
                             if (parameter.group === 2)
-                                tr(data-key=key data-name=parameter.name)
+                                tr(data-key=key data-name=parameter.name data-group=2)
                                     td: label
                                         input(type="checkbox" checked=parameter.enabled)
                                         |  #{parameter.name}
@@ -148,6 +148,7 @@ html(lang="en")
                         const name = $tr.data("name")
                         body.parameters[key] = {
                             name,
+                            group,
                             enabled: $('[type="checkbox"]', tr).prop("checked"),
                             from   : $('[name="from"]', tr).prop("valueAsDate")?.toISOString(),
                             to     : $('[name="to"]', tr).prop("valueAsDate")?.toISOString(),

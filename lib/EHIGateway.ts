@@ -84,6 +84,7 @@ export async function renderForm(req: Request, res: Response) {
         q.set("_patient", job.patient.id)
 
         // TODO: WHERE SHOULD THIS COME FROM???
+        // q.set("redirect", "http://127.0.0.1:3000/")
         // q.set("redirect", "http://localhost:3000/")
         q.set("redirect", String(req.query.redirect || "") || "http://127.0.0.1:3000/")
 
