@@ -16,18 +16,20 @@ html(lang="en")
                     input(type="hidden" name=key value=param)
                 br
                 p.
-                    Visualizing a scenario in which patients request EHI exports
-                    from registered healthcare organizations, this web application
-                    is a modified version of the original App Flow mocked up by
-                    the Argonaut's team. In order to explore the administration
-                    side of EHI export, our application also introduces pages and
-                    operations for reviewing, augmenting, rejecting, and approving
-                    EHI requests. In tandem with a project implementing an EHI
-                    backend server, this application provides a starting point
-                    for hospital systems to build their own EHI export interfaces
-                    and for the standards community to iterate on the current
-                    FHIR EHI export specification.
-
+                    By authorizing data for export you allow this hospital system to aggregate, 
+                    filter, and transport a collection of your medical record to you via electronic means; 
+                    in the case of this application, that means via a zip-file download. After downloading this data, 
+                    you assume responsibility for the security of these files. 
+                br
+                p.
+                    Note: This export is for demonstration purposes only. Among the Health Level Seven's Fast Health 
+                    Interoperability Resources (HL7's FHIR) community, the Argonaut Project has devised 
+                    an implementation guide (IG) for the export of electronic health information (EHI) 
+                    from a hospital system using the FHIR standard. This web application demonstrates how 
+                    requests for electronic health information (EHI) export from hospital systems 
+                    might be created and configured by requestors. In tandem with the project implementing an 
+                    EHI web application, this application provides a starting point for hospital systems to 
+                    build their own EHI export interfaces.
                 br
                 .center
                     button(type="submit" name="_auth_success" value="0") Deny
