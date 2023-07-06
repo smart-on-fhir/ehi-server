@@ -13,34 +13,22 @@ function uInt(x: any, defaultValue = 0) {
 
 export default {
 
-    /**
-     * The port to listen on. If not set defaults to system-allocated port
-     */
+    // The port to listen on. Defaults to `0` for system-allocated port
     port: env.PORT || 0,
 
-    /**
-     * The host to listen on. If not set defaults to "localhost"
-     */
+    // The host to listen on. If not set defaults to "0.0.0.0"
     host: env.HOST || "0.0.0.0",
 
-    /**
-     * We use this to sign our tokens
-     */
+    // We use this to sign our tokens
     jwtSecret: env.SECRET || "this is a secret",
 
-    /**
-     * Default access token lifetime in minutes
-     */
+    // Default access token lifetime in minutes
     accessTokenLifetime: env.ACCESS_TOKEN_LIFETIME || 60,
 
-    /**
-     * Default refresh token lifetime in minutes
-     */
+    // Default refresh token lifetime in minutes
     refreshTokenLifeTime: env.REFRESH_TOKEN_LIFETIME || 60 * 24 * 365,
     
-    /**
-     * Accept JWKs using the following algorithms
-     */
+    // Accept JWKs using the following algorithms
     supportedAlgorithms: ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"],
 
     // Keep un-approved jobs for how long (minutes since creation)?
@@ -55,5 +43,6 @@ export default {
     // MS to wait after appending each resource to its ndjson file
     jobThrottle: uInt(env.JOB_THROTTLE, 0),
 
+    // Use different location for test jobs
     jobsDir: Path.join(__dirname, env.NODE_ENV === "test" ? "test-jobs/" : "jobs/")
 }
