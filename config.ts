@@ -1,4 +1,5 @@
-import Path from "path"
+import Path    from "path"
+import { EHI } from "./index"
 
 const { env } = process
 
@@ -44,5 +45,12 @@ export default {
     jobThrottle: uInt(env.JOB_THROTTLE, 0),
 
     // Use different location for test jobs
-    jobsDir: Path.join(__dirname, env.NODE_ENV === "test" ? "test-jobs/" : "jobs/")
+    jobsDir: Path.join(__dirname, env.NODE_ENV === "test" ? "test-jobs/" : "jobs/"),
+
+    authDelay: env.NODE_ENV === "test" ? 0 : 1000,
+
+    users: [
+        { username: "admin"  , password: "admin-password" },
+        { username: "admin2", password: "admin2-password" },
+    ] as EHI.User[]
 }

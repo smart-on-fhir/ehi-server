@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response, urlencoded, json } from "expr
 import cors                    from "cors"
 import { AddressInfo }         from "net"
 import multer                  from "multer"
+import cookieParser            from "cookie-parser"
 import config                  from "./config"
 import AuthorizeHandler        from "./lib/authorize"
 import TokenHandler            from "./lib/token"
@@ -15,6 +16,7 @@ import {
     asyncRouteWrap as wrap,
     login,
     logout,
+    requireAdminAuth,
     validateToken
 } from "./lib"
 
@@ -26,6 +28,7 @@ app.use(cors({ origin: true, credentials: true }))
 app.set('view engine', 'pug');
 app.set('views', "./views");
 app.use(express.static("./static"));
+app.use(cookieParser())
 app.use(urlencoded({ extended: false, limit: "64kb" }));
 app.use(json());
 const upload = multer({
@@ -35,6 +38,7 @@ const upload = multer({
         fileSize: 1024 * 1024 * 10 // 10MB
     }
 })
+const requireSmartAuth = validateToken()
 
 const requireAuth = validateToken()
 
@@ -89,9 +93,12 @@ app.get("/jobs/:id/download/:resourceType", requireSmartAuth, wrap(Gateway.downl
 // customize and start job
 app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
 
-// get job info
-app.get("/jobs/:id/metadata", asyncRouteWrap(Gateway.getJobMetadata))
 
+// -----------------------------------------------------------------------------
+//                                 ADMIN API
+// -----------------------------------------------------------------------------
+app.post("/admin/login", wrap(login))
+app.get("/admin/logout", requireAdminAuth, wrap(logout))
 
 // Other -----------------------------------------------------------------------
 

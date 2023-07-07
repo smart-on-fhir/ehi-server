@@ -7,6 +7,7 @@ import patients                                        from "../data/db"
 import config                                          from "../config"
 import { HttpError }                                   from "./errors"
 import { getPath, getRequestBaseURL, humanName, wait } from "."
+import { EHI } from "../index"
 
 
 export default class ExportJob

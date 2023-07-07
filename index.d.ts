@@ -1,3 +1,5 @@
+import { Request } from "express-serve-static-core";
+
 declare namespace SMART {
 
     // For the purpose of this prototype we only support public and
@@ -172,6 +174,7 @@ declare namespace EHI {
                             "requested" |
                             "retrieved" |
                             "aborted"   |
+                            "approved"  |
                             "rejected";
 
     /**
@@ -256,6 +259,21 @@ declare namespace EHI {
         sexualAssault   ?: ExportJobAuthorization,
         genetic         ?: ExportJobAuthorization,
         other           ?: ExportJobAuthorization
+    }
+
+    interface UserRequest extends Request {
+        user?: User
+    }
+
+    interface AuthenticatedRequest extends Request {
+        user: User
+    }
+
+    interface User {
+        username: string
+        password: string
+        sid?: string
+        session?: Record<string, any>
     }
 
 }

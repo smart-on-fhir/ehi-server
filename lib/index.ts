@@ -1,10 +1,11 @@
-
+import Crypto from "crypto"
 import jwt from "jsonwebtoken"
 import Path from "path"
 import { NextFunction, Request, Response, RequestHandler } from "express"
 import { readdirSync, statSync } from "fs"
 import { HttpError, InvalidRequestError, OAuthError } from "./errors"
 import config from "../config"
+import { EHI } from "../index"
 
 
 /**
@@ -228,4 +229,65 @@ export function humanName(human: FHIRPerson): string {
     }
 
     return out;
+}
+
+export function requireAdminAuth(req: EHI.UserRequest, res: Response, next: NextFunction) {
+    const sid = req.cookies?.sid;
+    (req as EHI.UserRequest).user = sid ? config.users.find(u => u.sid === sid) : undefined;
+    if (!req.user) {
+        return res.status(401).type("text").end("Authorization required");
+    }
+    next();
+}
+
+export async function login(req: Request, res: Response) {
+
+    // 1 second artificial delay to protect from automated brute-force attacks
+    await wait(config.authDelay);
+        
+    const { username, password, remember } = req.body;
+
+    // No such username (Do NOT specify what is wrong in the error message!)
+    if (!username || !password) {
+        return res.status(401).json({ error: "Invalid username or password" })
+    }
+
+    const user = config.users.find(u => u.username === username);
+
+    // No such username (Do NOT specify what is wrong in the error message!)
+    if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" })
+    }
+
+    // Wrong password (Do NOT specify what is wrong in the error message!)
+    if (password !== user.password) {
+        return res.status(401).json({ error: "Invalid username or password" })
+    }
+
+    // Generate SID and update the user in DB
+    const sid = Crypto.randomBytes(32).toString("hex");
+
+    // Update user's lastLogin and sid properties
+    user.sid = sid
+
+    // Use session cookies by default
+    let expires: Date | undefined = undefined
+
+    // If "remember" is set use cookies that expire in one year
+    if (remember) {
+        expires = new Date()
+        expires.setFullYear(new Date().getFullYear() + 1)
+    }
+
+    res.cookie("sid", sid, { httpOnly: true, expires }).json({ username: user.username });
+}
+
+export async function logout(req: EHI.UserRequest, res: Response) {
+    await wait(config.authDelay);
+    if (req.user) {
+        delete req.user.sid;
+        delete req.user.session;
+        return res.clearCookie("sid").end("Logout successful");
+    }
+    res.status(400).end("Logout failed");
 }

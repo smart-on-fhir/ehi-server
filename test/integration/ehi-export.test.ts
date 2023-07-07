@@ -260,3 +260,79 @@ describe ("abort", () => {
     })
 
 })
+
+describe("POST /admin/login", () => {
+    it("Rejects empty body", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .expect(401)
+            .expect({ error: "Invalid username or password" })
+    });
+
+    it("Rejects missing username", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("password=whatever")
+            .expect(401)
+            .expect({ error: "Invalid username or password" })
+    });
+
+    it("Rejects missing password", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("username=admin")
+            .expect(401)
+            .expect({ error: "Invalid username or password" })
+    });
+
+    it("Rejects invalid username", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("username=whatever&password=whatever")
+            .expect(401)
+            .expect({ error: "Invalid username or password" })
+    });
+
+    it("Rejects invalid password", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("username=admin&password=whatever")
+            .expect(401)
+            .expect({ error: "Invalid username or password" })
+    });
+
+    it("User can login", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("username=admin&password=admin-password")
+            .expect(200)
+            .expect("set-cookie", /^sid=.+?;\s*Path=\/;\s*HttpOnly$/)
+            .expect({ username: 'admin' })
+    });
+
+    it("Can create long sessions", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/login")
+            .send("username=admin&password=admin-password&remember=true")
+            .expect(200)
+            .expect("set-cookie", /^sid=.+?;\s*Path=\/;\s*Expires=.+?;\s*HttpOnly$/)
+            .expect({ username: 'admin' })
+    });
+})
+
+describe("GET /admin/logout", () => {
+    it("Rejects unauthorized users body", async () => {
+        await request(SERVER.baseUrl).get("/admin/logout").expect(401)
+    });
+
+    it("Patient can logout", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .get("/admin/logout")
+            .set("Cookie", ["sid=TEST_SID"])
+            .send()
+            .expect(200)
+            .expect("Logout successful");
+        expect(config.users[0].sid).to.be.undefined
+    });
+})
