@@ -1,17 +1,21 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
-import cors                              from "cors"
-import { AddressInfo }                   from "net"
-import config                            from "./config"
-import { HttpError }                     from "./lib/errors"
-import patients                          from "./data/db"
-import * as Gateway                      from "./lib/EHIGateway"
-import AuthorizeHandler                  from "./lib/authorize"
-import TokenHandler                      from "./lib/token"
-import getMetadata                       from "./lib/metadata"
-import getWellKnownSmartConfig           from "./lib/smart-configuration"
-import { asyncRouteWrap, validateToken } from "./lib"
-import { start }                         from "./lib/ExportJobManager"
-
+import cors                    from "cors"
+import { AddressInfo }         from "net"
+import config                  from "./config"
+import AuthorizeHandler        from "./lib/authorize"
+import TokenHandler            from "./lib/token"
+import getMetadata             from "./lib/metadata"
+import patients                from "./data/db"
+import getWellKnownSmartConfig from "./lib/smart-configuration"
+import * as Gateway            from "./lib/EHIGateway"
+import { HttpError }           from "./lib/errors"
+import { start }               from "./lib/ExportJobManager"
+import {
+    asyncRouteWrap as wrap,
+    login,
+    logout,
+    validateToken
+} from "./lib"
 
 
 const app = express()
@@ -26,13 +30,16 @@ app.use(json());
 
 const requireAuth = validateToken()
 
-// SMART -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+//                                SMART & FHIR
+// -----------------------------------------------------------------------------
 
 // get authorization code
-app.get("/auth/authorize", asyncRouteWrap(AuthorizeHandler.handle))
+app.get("/auth/authorize", wrap(AuthorizeHandler.handle))
 
 // get access or refresh token
-app.post("/auth/token", asyncRouteWrap(TokenHandler.handle))
+app.post("/auth/token", wrap(TokenHandler.handle))
 
 // authorize app dialog
 app.get("/authorize-app", (req, res) => res.render("authorize-app", { query: req.query }))
@@ -50,29 +57,29 @@ app.get("/patient-login", (req, res) => {
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
 
 // FHIR CapabilityStatement
-app.get("/fhir/metadata", asyncRouteWrap(getMetadata))
+app.get("/fhir/metadata", wrap(getMetadata))
 
-// EHI -------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+//                                 EHI Export
+// -----------------------------------------------------------------------------
 
 // kick-off
-app.post("/fhir/Patient/:id/\\$ehi-export", requireAuth, asyncRouteWrap(Gateway.kickOff))
+app.post("/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
 
 // get job status
-app.get("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.checkStatus))
+app.get("/jobs/:id/status", requireSmartAuth, wrap(Gateway.checkStatus))
 
 // abort/delete job (bulk data like)
-app.delete("/jobs/:id/status", requireAuth, asyncRouteWrap(Gateway.abort))
-
-// Custom endpoints ------------------------------------------------------------
+app.delete("/jobs/:id/status", requireSmartAuth, wrap(Gateway.abort))
 
 // Render job customization form
-app.get("/jobs/:id/customize", asyncRouteWrap(Gateway.renderForm))
+app.get("/jobs/:id/customize", wrap(Gateway.renderForm))
 
 // download resource file
-app.get("/jobs/:id/download/:resourceType", requireAuth, asyncRouteWrap(Gateway.downloadFile))
+app.get("/jobs/:id/download/:resourceType", requireSmartAuth, wrap(Gateway.downloadFile))
 
 // customize and start job
-app.post("/jobs/:id", asyncRouteWrap(Gateway.customizeAndStart))
+app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
 
 // get job info
 app.get("/jobs/:id/metadata", asyncRouteWrap(Gateway.getJobMetadata))
