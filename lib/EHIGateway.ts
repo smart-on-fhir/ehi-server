@@ -105,3 +105,17 @@ export async function getJob(req: Request, res: Response) {
     res.json(job)
 }
 
+export async function approveJob(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    job.status = "approved"
+    await job.save()
+    res.json(job)
+}
+
+export async function rejectJob(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    job.status = "rejected"
+    await job.save()
+    res.json(job)
+}
+

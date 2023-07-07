@@ -329,3 +329,53 @@ describe("GET /admin/jobs/:id", () => {
         expect((await metaRes2.json()).manifest).to.not.be.null;
     })
 })
+
+
+describe("POST /admin/jobs/:id/approve", () => {
+
+    it("Rejects for missing jobs", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/bad-id/approve")
+            .set("Cookie", ["sid=TEST_SID"])
+            .send()
+            .expect(404)
+    })
+
+    it ("Works", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/"+jobId+"/approve")
+            .set("Cookie", ["sid=TEST_SID"])
+            .send()
+            .expect(/"status":\s*"approved"/)
+    })
+})
+
+describe("POST /admin/jobs/:id/reject", () => {
+    it("Rejects for missing jobs", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/bad-id/reject")
+            .set("Cookie", ["sid=TEST_SID"])
+            .send()
+            .expect(404)
+    })
+
+    it ("Works", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/"+jobId+"/reject")
+            .set("Cookie", ["sid=TEST_SID"])
+            .send()
+            .expect(/"status":\s*"rejected"/)
+    })
+})
