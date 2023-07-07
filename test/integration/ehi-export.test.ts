@@ -50,6 +50,8 @@ describe("Kick off", () => {
 
 })
 
+// TODO: direct kick-off
+
 describe("customization parameters", () => {
 
     it ("rejects bad job IDs", async () => {
@@ -301,6 +303,8 @@ describe("GET /admin/logout", () => {
     });
 })
 
+// TODO: describe("GET /admin/jobs", () => {})
+
 describe("GET /admin/jobs/:id", () => {
 
     async function fetchJob(id: string) {
@@ -330,6 +334,7 @@ describe("GET /admin/jobs/:id", () => {
     })
 })
 
+// TODO: describe("DELETE /admin/jobs/:id", () => {})
 
 describe("POST /admin/jobs/:id/approve", () => {
 
@@ -379,3 +384,8 @@ describe("POST /admin/jobs/:id/reject", () => {
             .expect(/"status":\s*"rejected"/)
     })
 })
+// TODO: describe("POST /admin/jobs/:id/add-files", () => {})
+// TODO: describe("POST /admin/jobs/:id/remove-files", () => {})
+// TODO: describe("GET /admin/jobs/:id/download", () => {})
+// TODO: describe("GET /admin/jobs/:id/download/:file", () => {})
+// TODO: describe("GET /admin/jobs/:id/download/attachments/:file", () => {})

@@ -40,7 +40,9 @@ const upload = multer({
 })
 const requireSmartAuth = validateToken()
 
-const requireAuth = validateToken()
+function notImplemented(req: Request, res: Response) {
+    res.status(500).end("Not implemented yet")
+}
 
 
 // -----------------------------------------------------------------------------
@@ -78,6 +80,9 @@ app.get("/fhir/metadata", wrap(getMetadata))
 // kick-off
 app.post("/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
 
+// kick-off and auto-approve
+app.post("/direct/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, notImplemented)
+
 // get job status
 app.get("/jobs/:id/status", requireSmartAuth, wrap(Gateway.checkStatus))
 
@@ -99,9 +104,16 @@ app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
 // -----------------------------------------------------------------------------
 app.post("/admin/login", wrap(login))
 app.get("/admin/logout", requireAdminAuth, wrap(logout))
+app.get("/admin/jobs", requireAdminAuth, notImplemented)
 app.get("/admin/jobs/:id", requireAdminAuth, wrap(Gateway.getJob))
+app.delete("/admin/jobs/:id", requireAdminAuth, notImplemented)
 app.post("/admin/jobs/:id/approve", requireAdminAuth, wrap(Gateway.approveJob))
 app.post("/admin/jobs/:id/reject", requireAdminAuth, wrap(Gateway.rejectJob))
+app.post("/admin/jobs/:id/add-files", requireAdminAuth, upload.array("attachments", 10), notImplemented)
+app.post("/admin/jobs/:id/remove-files", requireAdminAuth, notImplemented)
+app.get("/admin/jobs/:id/download", requireAdminAuth, notImplemented)
+app.get("/admin/jobs/:id/download/:file", requireAdminAuth, notImplemented)
+app.get("/admin/jobs/:id/download/attachments/:file", requireAdminAuth, notImplemented)
 
 // Other -----------------------------------------------------------------------
 
