@@ -18,6 +18,21 @@ function getPatientIdAt(index:number) {
 
 const PATIENT_ID = getPatientIdAt(0)
 
+function testAdminEndpoint(path: string, method: "get" | "post" | "delete" = "get") {
+    it ("Requires authentication", async () => {
+        await request(SERVER.baseUrl)[method](path).send().expect(401)
+    });
+
+    it ("Rejects unknown users", async () => {
+        await request(SERVER.baseUrl)[method](path).set('Cookie', ['sid=whatever']).send().expect(401)
+    });
+
+    it ("Works", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)[method](path).set('Cookie', ['sid=TEST_SID']).send().expect(200)
+    })
+}
+
 
 describe("Kick off", () => {
 
@@ -303,7 +318,9 @@ describe("GET /admin/logout", () => {
     });
 })
 
-// TODO: describe("GET /admin/jobs", () => {})
+describe("GET /admin/jobs", () => {
+    testAdminEndpoint("/admin/jobs")
+})
 
 describe("GET /admin/jobs/:id", () => {
 

@@ -4,6 +4,7 @@ import { Request, Response }                         from "express"
 import config                                        from "../config"
 import ExportJob                                     from "./ExportJob"
 import { createOperationOutcome, getRequestBaseURL } from "."
+import { readdir } from "fs/promises"
 
 
 export async function customizeAndStart(req: Request, res: Response) {
@@ -98,6 +99,16 @@ export async function renderForm(req: Request, res: Response) {
         token   : req.query.token,
         job
     })
+}
+
+export async function listJobs(req: Request, res: Response) {
+    const result = []
+    for (const id of await readdir(config.jobsDir)) {
+        if (statSync(Path.join(config.jobsDir, id)).isDirectory()) {
+            result.push((await ExportJob.byId(id)).toJSON())
+        }
+    }
+    res.json(result)
 }
 
 export async function getJob(req: Request, res: Response) {

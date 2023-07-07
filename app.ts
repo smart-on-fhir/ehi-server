@@ -104,7 +104,7 @@ app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
 // -----------------------------------------------------------------------------
 app.post("/admin/login", wrap(login))
 app.get("/admin/logout", requireAdminAuth, wrap(logout))
-app.get("/admin/jobs", requireAdminAuth, notImplemented)
+app.get("/admin/jobs", requireAdminAuth, wrap(Gateway.listJobs))
 app.get("/admin/jobs/:id", requireAdminAuth, wrap(Gateway.getJob))
 app.delete("/admin/jobs/:id", requireAdminAuth, notImplemented)
 app.post("/admin/jobs/:id/approve", requireAdminAuth, wrap(Gateway.approveJob))
