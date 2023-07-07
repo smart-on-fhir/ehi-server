@@ -107,5 +107,8 @@ dist
 
 jobs/*
 !jobs/.gitkeep
+test-jobs/*
+!test-jobs/.gitkeep
 uploads/*
 !uploads/.gitkeep
+test/integration/ehi-export.test.ts

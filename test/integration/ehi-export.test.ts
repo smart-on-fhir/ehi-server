@@ -144,42 +144,6 @@ describe ("status", () => {
     })
 })
 
-describe ("job metadata", () => {
-
-    it ("rejects bad job IDs", async () => {
-        const client = new EHIClient()
-        const res = await client.getMetadata("bad-id")
-        expect(res.status).to.equal(404);
-        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
-    })
-
-    it ("provides metadata after export is complete", async () => {
-        const client = new EHIClient()
-        const { status, jobId } = await client.kickOff(PATIENT_ID)
-        await client.customize(jobId)
-        const metaRes1 = await client.getMetadata(jobId)
-        expect(metaRes1.status).to.equal(200);
-        expect((await metaRes1.json()).manifest).to.be.null;
-        await client.waitForExport(status!)
-        const metaRes2 = await client.getMetadata(jobId)
-        expect(metaRes2.status).to.equal(200);
-        expect((await metaRes2.json()).manifest).to.not.be.null;
-    })
-
-    it ("provides metadata after export is complete", async () => {
-        const client = new EHIClient()
-        const { status, jobId } = await client.kickOff(PATIENT_ID)
-        await client.customize(jobId)
-        const metaRes1 = await client.getMetadata(jobId)
-        expect(metaRes1.status).to.equal(200);
-        expect((await metaRes1.json()).manifest).to.be.null;
-        await client.waitForExport(status!)
-        const metaRes2 = await client.getMetadata(jobId)
-        expect(metaRes2.status).to.equal(200);
-        expect((await metaRes2.json()).manifest).to.not.be.null;
-    })
-})
-
 describe ("download", () => {
     
     it ('Replies with 404 and OperationOutcome for invalid job IDs', async () => {
@@ -335,4 +299,33 @@ describe("GET /admin/logout", () => {
             .expect("Logout successful");
         expect(config.users[0].sid).to.be.undefined
     });
+})
+
+describe("GET /admin/jobs/:id", () => {
+
+    async function fetchJob(id: string) {
+        config.users[0].sid = "TEST_SID";
+        return fetch(`${SERVER.baseUrl}/admin/jobs/${id}`, {
+            headers: { cookie: "sid=TEST_SID" }
+        })
+    }
+
+    it ("rejects bad job IDs", async () => {
+        const res = await fetchJob("bad-id")
+        expect(res.status).to.equal(404);
+        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
+    })
+
+    it ("provides metadata after export is complete", async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        const metaRes1 = await fetchJob(jobId)
+        expect(metaRes1.status).to.equal(200);
+        expect((await metaRes1.json()).manifest).to.be.null;
+        await client.waitForExport(status!)
+        const metaRes2 = await fetchJob(jobId)
+        expect(metaRes2.status).to.equal(200);
+        expect((await metaRes2.json()).manifest).to.not.be.null;
+    })
 })

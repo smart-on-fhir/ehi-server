@@ -100,3 +100,8 @@ export async function renderForm(req: Request, res: Response) {
     })
 }
 
+export async function getJob(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    res.json(job)
+}
+

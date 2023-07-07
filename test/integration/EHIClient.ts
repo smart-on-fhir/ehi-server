@@ -1,6 +1,7 @@
 import { expect }            from "chai"
 import { wait }              from "../../lib"
 import { authorize, SERVER } from "./TestContext"
+import { EHI }               from "../../index"
 
 
 export default class EHIClient
@@ -73,9 +74,5 @@ export default class EHIClient
 
     public async abort(jobId: string) {
         return this.request(`${SERVER.baseUrl}/jobs/${jobId}/status`, { method: "DELETE" })
-    }
-
-    public async getMetadata(jobId: string) {
-        return this.request(`${SERVER.baseUrl}/jobs/${jobId}/metadata`)
     }
 }
