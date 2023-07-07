@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
 import cors                    from "cors"
 import { AddressInfo }         from "net"
+import multer                  from "multer"
 import config                  from "./config"
 import AuthorizeHandler        from "./lib/authorize"
 import TokenHandler            from "./lib/token"
@@ -27,6 +28,13 @@ app.set('views', "./views");
 app.use(express.static("./static"));
 app.use(urlencoded({ extended: false, limit: "64kb" }));
 app.use(json());
+const upload = multer({
+    dest: "backend/uploads/",
+    limits: {
+        files: 5,
+        fileSize: 1024 * 1024 * 10 // 10MB
+    }
+})
 
 const requireAuth = validateToken()
 
