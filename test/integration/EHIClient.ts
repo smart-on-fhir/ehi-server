@@ -27,7 +27,7 @@ export default class EHIClient
         const url = `${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`
         const res = await this.request(url, { method: "POST" });
         expect(res.status, `kickOff failed for ${url}`).to.equal(202)
-        const status = res.headers.get('content-location')
+        const status = res.headers.get('content-location')!
         expect(status).to.exist
         const jobId = status!.match(/\/jobs\/([^/]+)\/status/)?.[1]!
         expect(jobId).to.exist

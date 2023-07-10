@@ -401,8 +401,179 @@ describe("POST /admin/jobs/:id/reject", () => {
             .expect(/"status":\s*"rejected"/)
     })
 })
-// TODO: describe("POST /admin/jobs/:id/add-files", () => {})
-// TODO: describe("POST /admin/jobs/:id/remove-files", () => {})
+
+describe("POST /admin/jobs/:id/add-files", () => {
+    it("Rejects for missing jobs", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/add-files")
+            .set('Cookie', ['sid=TEST_SID'])
+            .expect(404)
+    });
+
+    it("Requires authentication", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/add-files")
+            .send()
+            .expect(401)
+    });
+
+    it("Rejects unknown users", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/add-files")
+            .set('Cookie', ['sid=whatever'])
+            .expect(401)
+    });
+
+    it("Rejects if no files are uploaded", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/add-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .expect(400, 'Called "addFiles" without uploaded "attachments"')
+    });
+
+    it("Works as expected", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForExport(status)
+
+        config.users[0].sid = "TEST_SID";
+
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/add-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .attach("attachments", "test/fixtures/img3.png")
+            .attach("attachments", "test/fixtures/img2.png")
+            .expect(200)
+            .expect(res => {
+                // console.log("after upload:", JSON.stringify(res.body, null, 4))
+                const { output } = res.body.manifest
+                expect(output).to.be.instanceOf(Array)
+                expect(output.length).to.equal(6)
+                const entry = output.find((x: any) => x.type === "DocumentReference")
+                expect(entry).to.exist
+                expect(entry.url).to.match(/\battachments\.DocumentReference\b/)
+                expect(entry.count).to.equal(2)
+            })
+        
+        
+    });
+})
+
+
+describe("POST /admin/jobs/:id/remove-files", () => {
+    
+    it("Rejects for missing jobs", async () => {
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/remove-files")
+            .set('Cookie', ['sid=TEST_SID'])
+            .expect(404)
+    });
+
+    it("Requires authentication", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/remove-files")
+            .expect(401)
+    });
+
+    it("Rejects unknown users", async () => {
+        await request(SERVER.baseUrl)
+            .post("/admin/jobs/123/remove-files")
+            .set('Cookie', ['sid=whatever'])
+            .expect(401)
+    });
+
+    it("Ignores missing files", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForExport(status)
+
+        config.users[0].sid = "TEST_SID";
+
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/remove-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .send({ params: ["img3.png"] })
+            .expect(200)
+    });
+
+    it("Ignores empty params", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForExport(status)
+
+        config.users[0].sid = "TEST_SID";
+
+        await request(SERVER.baseUrl)
+        .post(`/admin/jobs/${jobId}/remove-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .send({ params: [] })
+            .expect(200)
+    });
+
+    it("Ignores missing params", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForExport(status)
+
+        config.users[0].sid = "TEST_SID";
+
+        await request(SERVER.baseUrl)
+        .post(`/admin/jobs/${jobId}/remove-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .expect(200)
+    });
+
+    it("Works as expected", async () => {
+        const client = new EHIClient()
+        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForExport(status)
+
+        config.users[0].sid = "TEST_SID";
+
+        let res = await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/add-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .attach("attachments", "test/fixtures/img3.png")
+            .attach("attachments", "test/fixtures/img2.png")
+            .expect(200)
+            .expect(res => {
+                // console.log("after upload:", JSON.stringify(res.body, null, 4))
+                const { output } = res.body.manifest
+                expect(output).to.be.instanceOf(Array)
+                expect(output.length).to.equal(6)
+                const entry = output.find((x: any) => x.type === "DocumentReference")
+                expect(entry).to.exist
+                expect(entry.url).to.match(/\battachments\.DocumentReference\b/)
+                expect(entry.count).to.equal(2)
+            })
+
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/remove-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .send({ params: [res.body.attachments[0].title] })
+            .expect(200)
+            .expect(res => {
+                const { output } = res.body.manifest
+                expect(output).to.be.instanceOf(Array)
+                expect(output.length).to.equal(6)
+                const entry = output.find((x: any) => x.type === "DocumentReference")
+                expect(entry).to.exist
+                expect(entry.url).to.match(/\battachments\.DocumentReference\b/)
+                expect(entry.count).to.equal(1)
+            })
+    });
+})
 // TODO: describe("GET /admin/jobs/:id/download", () => {})
 // TODO: describe("GET /admin/jobs/:id/download/:file", () => {})
 // TODO: describe("GET /admin/jobs/:id/download/attachments/:file", () => {})

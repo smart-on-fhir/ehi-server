@@ -1,13 +1,13 @@
 import Path                                            from "path"
-import {existsSync, rmSync }                           from "fs"
-import { appendFile, mkdir, readFile, writeFile }      from "fs/promises"
+import {existsSync, rmSync, statSync, writeFileSync }  from "fs"
+import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/promises"
 import crypto                                          from "crypto"
 import { Request }                                     from "express"
 import patients                                        from "../data/db"
 import config                                          from "../config"
 import { HttpError }                                   from "./errors"
-import { getPath, getRequestBaseURL, humanName, wait } from "."
-import { EHI } from "../index"
+import { EHI }                                         from "../index"
+import { getPath, getPrefixedFilePath, getRequestBaseURL, humanName, wait } from "."
 
 
 export default class ExportJob
@@ -62,6 +62,11 @@ export default class ExportJob
         genetic         : { value: ""   , name: "Genetic Screening" },
         other           : { value: ""   , name: "Other(s)" }
     };
+
+    /**
+     * Custom attachments (if any)
+     */
+    protected attachments: fhir4.Attachment[];
 
     /**
      * @param patientId The ID of the exported patient
@@ -141,6 +146,7 @@ export default class ExportJob
             name: humanName(pt)
         }
         this.path = Path.join(config.jobsDir, this.id)
+        this.attachments = [];
     }
 
     public async abort()
@@ -303,7 +309,8 @@ export default class ExportJob
             createdAt     : this.createdAt,
             completedAt   : this.completedAt,
             parameters    : this.parameters,
-            authorizations: this.authorizations
+            authorizations: this.authorizations,
+            attachments   : this.attachments
         }
     }
 
@@ -314,10 +321,83 @@ export default class ExportJob
         }
         this.parameters     = req.body.parameters
         this.authorizations = req.body.authorizations
-        this.status = "requested"
+        this.status         = "requested"
         await this.save()
         this.kickOff(req); // DON'T WAIT FOR THIS!
         return this
+    }
+
+    public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
+        if (this.status !== "retrieved") {
+            throw new HttpError('Export not retrieved yet').status(400)
+        }
+        const src  = Path.join(__dirname, "..", attachment.path)
+        const dst  = Path.join(this.path, "attachments")
+        const path = getPrefixedFilePath(dst, attachment.originalname)
+        const filename = Path.basename(path)
+        await mkdir(dst, { recursive: true });
+        await copyFile(src, path);
+        this.attachments.push({
+            title: filename,
+            contentType: attachment.mimetype,
+            size: attachment.size,
+            url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
+        });
+        this.manifest = this.getAugmentedManifest()
+        await this.save()
+        await unlink(src)
+    }
+
+    public async removeAttachment(fileName: string, baseUrl: string) {
+        if (this.status !== "retrieved") {
+            throw new HttpError('Export not retrieved yet').status(400)
+        }
+        const dst = Path.join(this.path, "attachments", fileName)
+        const url = `${baseUrl}/jobs/${this.id}/download/attachments/${fileName}`
+        if (this.attachments.find(x => x.url === url) && statSync(dst, { throwIfNoEntry: false })?.isFile()) {
+            await unlink(dst)
+            this.attachments = this.attachments.filter(x => x.url !== url)
+            this.manifest = this.getAugmentedManifest()
+            await this.save()
+        }
+    }
+
+    protected getAugmentedManifest(): EHI.ExportManifest | null {
+
+        if (!this.attachments.length) {
+            return this.manifest
+        }
+
+        const baseUrl = this.attachments[0].url!.replace(/\/jobs\/.*/, "")
+
+        const result = {
+            ...this.manifest,
+            output: [...this.manifest!.output]
+        }
+
+        const url = `${baseUrl}/jobs/${this.id}/download/attachments.DocumentReference.ndjson`
+
+        result.output = result.output.filter(x => x.url !== url)
+
+        result.output.push({ type: "DocumentReference", url, count: this.attachments.length })
+
+        writeFileSync(
+            Path.join(this.path, "attachments.DocumentReference.ndjson"),
+            JSON.stringify({
+                resourceType: "DocumentReference",
+                status: "current",
+                subject: { reference: "Patient/" + this.patient.id },
+                content: this.attachments.map(x => ({ attachment: x })),
+                meta: {
+                    tag: [{
+                        code: "ehi-export",
+                        display: "generated as part of an ehi-export request"
+                    }]
+                }
+            })
+        )
+
+        return result as EHI.ExportManifest
     }
 }
 

@@ -220,6 +220,8 @@ declare namespace EHI {
         parameters?: ExportJobInformationParameters
 
         authorizations?: ExportJobAuthorizations
+
+        attachments: fhir4.Attachment[]
     }
 
     interface ExportJobInformationParameter {

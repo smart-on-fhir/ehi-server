@@ -1,10 +1,11 @@
 import Path                                          from "path"
 import { statSync }                                  from "fs"
 import { Request, Response }                         from "express"
+import { readdir }                                   from "fs/promises"
 import config                                        from "../config"
 import ExportJob                                     from "./ExportJob"
+import { HttpError }                                 from "./errors"
 import { createOperationOutcome, getRequestBaseURL } from "."
-import { readdir } from "fs/promises"
 
 
 export async function customizeAndStart(req: Request, res: Response) {
@@ -130,3 +131,25 @@ export async function rejectJob(req: Request, res: Response) {
     res.json(job)
 }
 
+export async function addFiles(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    const files = ((req.files || []) as Express.Multer.File[]).filter(f => f.fieldname === "attachments")
+    if (!files.length) {
+        throw new HttpError('Called "addFiles" without uploaded "attachments"').status(400)
+    }
+    const baseUrl = getRequestBaseURL(req)
+    for (const file of files) {
+        await job.addAttachment(file, baseUrl)
+    }
+    res.json(job)
+}
+
+export async function removeFiles(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    const files = req.body.params || []
+    const baseUrl = getRequestBaseURL(req)
+    for (const file of files) {
+        await job.removeAttachment(file, baseUrl)
+    }
+    res.json(job)
+}

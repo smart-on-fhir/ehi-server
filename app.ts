@@ -32,7 +32,7 @@ app.use(cookieParser())
 app.use(urlencoded({ extended: false, limit: "64kb" }));
 app.use(json());
 const upload = multer({
-    dest: "backend/uploads/",
+    dest: "uploads/",
     limits: {
         files: 5,
         fileSize: 1024 * 1024 * 10 // 10MB
@@ -109,8 +109,8 @@ app.get("/admin/jobs/:id", requireAdminAuth, wrap(Gateway.getJob))
 app.delete("/admin/jobs/:id", requireAdminAuth, notImplemented)
 app.post("/admin/jobs/:id/approve", requireAdminAuth, wrap(Gateway.approveJob))
 app.post("/admin/jobs/:id/reject", requireAdminAuth, wrap(Gateway.rejectJob))
-app.post("/admin/jobs/:id/add-files", requireAdminAuth, upload.array("attachments", 10), notImplemented)
-app.post("/admin/jobs/:id/remove-files", requireAdminAuth, notImplemented)
+app.post("/admin/jobs/:id/add-files", requireAdminAuth, upload.array("attachments", 10), wrap(Gateway.addFiles))
+app.post("/admin/jobs/:id/remove-files", requireAdminAuth, wrap(Gateway.removeFiles))
 app.get("/admin/jobs/:id/download", requireAdminAuth, notImplemented)
 app.get("/admin/jobs/:id/download/:file", requireAdminAuth, notImplemented)
 app.get("/admin/jobs/:id/download/attachments/:file", requireAdminAuth, notImplemented)
