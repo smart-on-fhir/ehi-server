@@ -246,10 +246,7 @@ export default class ExportJob
             transactionTime: new Date(this.createdAt).toISOString(),
             requiresAccessToken: true,
             output: [] as any[],
-            error: [] as any[],
-            extension: {
-                metadata: `${baseUrl}/jobs/${this.id}/metadata`
-            }
+            error: [] as any[]
         };
 
         // Create a function add every single resource
