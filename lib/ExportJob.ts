@@ -257,7 +257,7 @@ export default class ExportJob
                 if (!fileEntry) {
                     manifest.output.push({
                         type : resourceType,
-                        url  : `${baseUrl}/jobs/${this.id}/download/${resourceType}`,
+                        url  : `${baseUrl}/jobs/${this.id}/download/${resourceType}.ndjson`,
                         count: 1
                     })
                 } else {

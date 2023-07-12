@@ -264,7 +264,7 @@ describe ("status", () => {
 describe ("download", () => {
     
     it ('Replies with 404 and OperationOutcome for invalid job IDs', async () => {
-        const res = await new EHIClient().request(SERVER.baseUrl + "/jobs/123/download/resourceType");
+        const res = await new EHIClient().request(SERVER.baseUrl + "/jobs/123/download/resourceType.ndjson");
         expect(res.status).to.equal(404);
         expect((await res.json()).resourceType).to.equal("OperationOutcome");
     })
@@ -286,6 +286,48 @@ describe ("download", () => {
         await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.exist;
+        const url = manifest.output.find((x: any) => x.type === "Patient")!.url
+        const res3 = await client.request(url);
+        expect(res3.headers.get("content-type")).to.equal("application/fhir+ndjson");
+        expect(res3.headers.get("content-disposition")).to.equal("attachment");
+        const ndjson = await res3.text()
+        const lines = ndjson.trim().split("\n")
+        expect(lines.length).to.equal(1)
+        expect(() => lines.map(l => JSON.parse(l))).not.to.throw
+        expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
+    })
+
+    it ('Downloading attachments', async () => {
+        const client = new EHIClient()
+        const { status, jobId } = await client.kickOff(PATIENT_ID)
+        await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
+        
+        // Upload 2 files ------------------------------------------------------
+        
+        config.users[0].sid = "TEST_SID";
+        
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/add-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .attach("attachments", "test/fixtures/img3.png")
+            .attach("attachments", "test/fixtures/img2.png")
+            .expect(200)
+        
+        // ---------------------------------------------------------------------
+
+        await client.approve(jobId)
+        const manifest = await client.waitForExport(status!)
+        // console.log(manifest)
+        expect(manifest).to.exist;
+        expect(manifest.output).to.be.instanceOf(Array)
+        expect(manifest.output.length).to.equal(6)
+        
+        const entry = manifest.output.find((x: any) => x.type === "DocumentReference")
+        expect(entry).to.exist
+        expect(entry!.url).to.match(/\battachments\.DocumentReference\.ndjson$/)
+        expect(entry!.count).to.equal(2)
+
         const url = manifest.output.find((x: any) => x.type === "Patient")!.url
         const res3 = await client.request(url);
         expect(res3.headers.get("content-type")).to.equal("application/fhir+ndjson");

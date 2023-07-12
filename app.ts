@@ -94,7 +94,7 @@ app.delete("/jobs/:id/status", requireSmartAuth, wrap(Gateway.abort))
 app.get("/jobs/:id/customize", wrap(Gateway.renderForm))
 
 // download resource file
-app.get("/jobs/:id/download/:resourceType", requireSmartAuth, wrap(Gateway.downloadFile))
+app.get("/jobs/:id/download/:file", requireSmartAuth, wrap(Gateway.downloadFile))
 
 // customize and start job
 app.post("/jobs/:id", wrap(Gateway.customizeAndStart))

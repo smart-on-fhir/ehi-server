@@ -22,7 +22,7 @@ export async function downloadFile(req: Request, res: Response) {
         return res.status(404).json(createOperationOutcome("Export job not found"))
     }
 
-    const path = Path.join(dir, req.params.resourceType + ".ndjson")
+    const path = Path.join(dir, req.params.file)
 
     if (!statSync(path, { throwIfNoEntry: false })?.isFile()) {
         return res.status(404).json(createOperationOutcome("File not found"))
