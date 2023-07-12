@@ -94,6 +94,9 @@ describe("customization parameters", () => {
                 other            : { enabled: true, from: "2019-01-01", to: "2020-01-01", name: "Other"             }
             }
         })
+        
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.exist;
     })
@@ -119,6 +122,14 @@ describe("customization parameters", () => {
         expect(res.status).to.equal(400);
         expect(await res.text()).to.equal("Exports job already started");
     })
+
+    it ("Includes link header in the status endpoint if needed", async () => {
+        const client = new EHIClient()
+        const { status } = await client.kickOff(PATIENT_ID)
+        const res = await client.request(status)
+        const link = res.headers.get("Link")
+        expect(link).to.exist;
+    })
 })
 
 describe ("status", () => {
@@ -133,6 +144,8 @@ describe ("status", () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.be.instanceOf(Object)
         expect(typeof manifest.transactionTime).to.equal("string")
@@ -182,6 +195,8 @@ describe ("download", () => {
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         expect(manifest).to.exist;
         const url = manifest.output.find((x: any) => x.type === "Patient")!.url
@@ -218,6 +233,8 @@ describe ("abort", () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
@@ -233,6 +250,8 @@ describe ("abort", () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         await client.waitForExport(status!)
         const result = await client.abort(jobId!)
         expect(result.status).to.equal(202)
@@ -344,14 +363,14 @@ describe("GET /admin/jobs/:id", () => {
         const metaRes1 = await fetchJob(jobId)
         expect(metaRes1.status).to.equal(200);
         expect((await metaRes1.json()).manifest).to.be.null;
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
         await client.waitForExport(status!)
         const metaRes2 = await fetchJob(jobId)
         expect(metaRes2.status).to.equal(200);
         expect((await metaRes2.json()).manifest).to.not.be.null;
     })
 })
-
-// TODO: describe("DELETE /admin/jobs/:id", () => {})
 
 describe("POST /admin/jobs/:id/approve", () => {
 
@@ -368,6 +387,7 @@ describe("POST /admin/jobs/:id/approve", () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
 
         config.users[0].sid = "TEST_SID";
         await request(SERVER.baseUrl)
@@ -379,6 +399,7 @@ describe("POST /admin/jobs/:id/approve", () => {
 })
 
 describe("POST /admin/jobs/:id/reject", () => {
+    
     it("Rejects for missing jobs", async () => {
         config.users[0].sid = "TEST_SID";
         await request(SERVER.baseUrl)
@@ -392,6 +413,7 @@ describe("POST /admin/jobs/:id/reject", () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "retrieved")
 
         config.users[0].sid = "TEST_SID";
         await request(SERVER.baseUrl)
@@ -436,12 +458,23 @@ describe("POST /admin/jobs/:id/add-files", () => {
             .expect(400, 'Called "addFiles" without uploaded "attachments"')
     });
 
+    it ("Rejects if the job is not in retrieved state", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/add-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .attach("attachments", "test/fixtures/img3.png")
+            .expect(400, 'Cannot add attachments to export in "awaiting-input" state')
+    });
+
     it("Works as expected", async () => {
         const client = new EHIClient()
         const { jobId, status } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.waitForExport(status)
-
+        await client.waitForStatus(jobId, "retrieved")
+        
         config.users[0].sid = "TEST_SID";
 
         await request(SERVER.baseUrl)
@@ -451,7 +484,7 @@ describe("POST /admin/jobs/:id/add-files", () => {
             .attach("attachments", "test/fixtures/img2.png")
             .expect(200)
             .expect(res => {
-                // console.log("after upload:", JSON.stringify(res.body, null, 4))
+                // console.log("after upload:", res.error)
                 const { output } = res.body.manifest
                 expect(output).to.be.instanceOf(Array)
                 expect(output.length).to.equal(6)
@@ -461,10 +494,12 @@ describe("POST /admin/jobs/:id/add-files", () => {
                 expect(entry.count).to.equal(2)
             })
         
+        await (await client.approve(jobId)).json()
+        await client.waitForExport(status)
+        
         
     });
 })
-
 
 describe("POST /admin/jobs/:id/remove-files", () => {
     
@@ -491,10 +526,9 @@ describe("POST /admin/jobs/:id/remove-files", () => {
 
     it("Ignores missing files", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.waitForExport(status)
-
+        await client.waitForStatus(jobId, "retrieved")
         config.users[0].sid = "TEST_SID";
 
         await request(SERVER.baseUrl)
@@ -502,18 +536,19 @@ describe("POST /admin/jobs/:id/remove-files", () => {
             .set('Cookie', ['sid=TEST_SID'])
             .send({ params: ["img3.png"] })
             .expect(200)
+
     });
 
     it("Ignores empty params", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.waitForExport(status)
+        await client.waitForStatus(jobId, "retrieved")
 
         config.users[0].sid = "TEST_SID";
 
         await request(SERVER.baseUrl)
-        .post(`/admin/jobs/${jobId}/remove-files`)
+            .post(`/admin/jobs/${jobId}/remove-files`)
             .set('Cookie', ['sid=TEST_SID'])
             .send({ params: [] })
             .expect(200)
@@ -521,23 +556,34 @@ describe("POST /admin/jobs/:id/remove-files", () => {
 
     it("Ignores missing params", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.waitForExport(status)
+        await client.waitForStatus(jobId, "retrieved")
 
         config.users[0].sid = "TEST_SID";
 
         await request(SERVER.baseUrl)
-        .post(`/admin/jobs/${jobId}/remove-files`)
+            .post(`/admin/jobs/${jobId}/remove-files`)
             .set('Cookie', ['sid=TEST_SID'])
             .expect(200)
     });
 
+    it ("Rejects if the job is not in retrieved state", async () => {
+        const client = new EHIClient()
+        const { jobId } = await client.kickOff(PATIENT_ID)
+        config.users[0].sid = "TEST_SID";
+        await request(SERVER.baseUrl)
+            .post(`/admin/jobs/${jobId}/remove-files`)
+            .set('Cookie', ['sid=TEST_SID'])
+            .send({ params: [ "some-file" ] })
+            .expect(400, 'Cannot remove attachments from export in "awaiting-input" state')
+    });
+
     it("Works as expected", async () => {
         const client = new EHIClient()
-        const { jobId, status } = await client.kickOff(PATIENT_ID)
+        const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        await client.waitForExport(status)
+        await client.waitForStatus(jobId, "retrieved")
 
         config.users[0].sid = "TEST_SID";
 
@@ -574,6 +620,6 @@ describe("POST /admin/jobs/:id/remove-files", () => {
             })
     });
 })
-// TODO: describe("GET /admin/jobs/:id/download", () => {})
+
 // TODO: describe("GET /admin/jobs/:id/download/:file", () => {})
 // TODO: describe("GET /admin/jobs/:id/download/attachments/:file", () => {})

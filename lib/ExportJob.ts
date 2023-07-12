@@ -2,24 +2,17 @@ import Path                                            from "path"
 import {existsSync, rmSync, statSync, writeFileSync }  from "fs"
 import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/promises"
 import crypto                                          from "crypto"
-import { Request }                                     from "express"
 import patients                                        from "../data/db"
 import config                                          from "../config"
 import { HttpError }                                   from "./errors"
 import { EHI }                                         from "../index"
-import { getPath, getPrefixedFilePath, getRequestBaseURL, humanName, wait } from "."
+import { getPath, getPrefixedFilePath, humanName, wait } from "."
 
 
 export default class ExportJob
 {
-    /**
-     * Each export job has an unique hex string ID
-     */
     readonly id: string;
 
-    /**
-     * The patient who's data is being exported (only ID and humanized name)
-     */
     readonly patient: {
         id: string
         name: string
@@ -80,11 +73,11 @@ export default class ExportJob
     {
         const path = Path.join(config.jobsDir, this.id)
         try {
-            rmSync(path, { force: true, recursive: true })
+            rmSync(path, { recursive: true })
         } catch (ex) {
-            console.error(ex)
-            throw new Error("Unable to abort job with id '${id}'.")
+            throw new Error(`Unable to destroy job with id '${this.id}'.`)
         }
+        return this;
     }
 
     /**
@@ -102,12 +95,12 @@ export default class ExportJob
             case "rejected":
                 await job.destroy()
             break;
-            case "retrieved":
+            case "approved":
                 if (Date.now() - job.completedAt > config.completedJobLifetimeMinutes * 60000) {
                     await job.destroy()
                 }
             break;
-            case "in-review":
+            case "retrieved":
             case "awaiting-input":
                 if (Date.now() - job.createdAt > config.jobMaxLifetimeMinutes * 60000) {
                     await job.destroy()
@@ -234,9 +227,8 @@ export default class ExportJob
         }
     }
 
-    public async kickOff(req: Request)
+    public async kickOff(baseUrl: string)
     {
-        const baseUrl       = getRequestBaseURL(req)
         const patientPath   = patients.get(this.patient.id)!.file
         const patientData   = await readFile(patientPath, "utf8")
         const patientBundle = JSON.parse(patientData) as fhir4.Bundle
@@ -286,7 +278,7 @@ export default class ExportJob
         if (!existsSync(this.path)) {
             await mkdir(this.path)
         }
-        
+
         await writeFile(
             Path.join(this.path, `job.json`),
             JSON.stringify(this, null, 4),
@@ -311,22 +303,26 @@ export default class ExportJob
         }
     }
 
-    public async customizeAndStart(req: Request)
-    {
+    public async customizeAndStart(
+        baseUrl: string,
+        parameters: EHI.ExportJobInformationParameters,
+        authorizations: EHI.ExportJobAuthorizations
+    ) {
         if (this.status !== "awaiting-input") {
             throw new HttpError('Exports job already started').status(400)
         }
-        this.parameters     = req.body.parameters
-        this.authorizations = req.body.authorizations
+
+        this.parameters     = parameters
+        this.authorizations = authorizations
         this.status         = "requested"
         await this.save()
-        this.kickOff(req); // DON'T WAIT FOR THIS!
+        this.kickOff(baseUrl); // DON'T WAIT FOR THIS!
         return this
     }
 
     public async addAttachment(attachment: Express.Multer.File, baseUrl: string) {
         if (this.status !== "retrieved") {
-            throw new HttpError('Export not retrieved yet').status(400)
+            throw new HttpError(`Cannot add attachments to export in "${this.status}" state`).status(400)
         }
         const src  = Path.join(__dirname, "..", attachment.path)
         const dst  = Path.join(this.path, "attachments")
@@ -347,7 +343,7 @@ export default class ExportJob
 
     public async removeAttachment(fileName: string, baseUrl: string) {
         if (this.status !== "retrieved") {
-            throw new HttpError('Export not retrieved yet').status(400)
+            throw new HttpError(`Cannot remove attachments from export in "${this.status}" state`).status(400)
         }
         const dst = Path.join(this.path, "attachments", fileName)
         const url = `${baseUrl}/jobs/${this.id}/download/attachments/${fileName}`
@@ -395,6 +391,22 @@ export default class ExportJob
         )
 
         return result as EHI.ExportManifest
+    }
+
+    public async approve() {
+        if (this.status !== "retrieved") {
+            throw new HttpError(`Only retrieved jobs can be approved`).status(400)
+        }
+        this.status = "approved"
+        return this.save()
+    }
+
+    public async reject() {
+        if (this.status !== "retrieved") {
+            throw new HttpError(`Only retrieved jobs can be rejected`).status(400)
+        }
+        this.status = "rejected"
+        return this.save()
     }
 }
 

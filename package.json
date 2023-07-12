@@ -6,7 +6,7 @@
   "scripts": {
     "start": "ts-node --skipProject --transpile-only app.ts",
     "start:watch": "nodemon -e ts -x 'npm run start'",
-    "test": "NODE_ENV=test nyc --reporter=lcov ts-mocha --exit -t 5000",
+    "test": "NODE_ENV=test nyc --reporter=lcov ts-mocha --exit -t 5000 || exit 1",
     "test:watch": "NODE_ENV=test nodemon -e ts -x 'npm run test'"
   },
   "repository": {

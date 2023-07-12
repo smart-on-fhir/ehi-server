@@ -284,10 +284,14 @@ export async function login(req: Request, res: Response) {
 
 export async function logout(req: EHI.UserRequest, res: Response) {
     await wait(config.authDelay);
-    if (req.user) {
-        delete req.user.sid;
-        delete req.user.session;
-        return res.clearCookie("sid").end("Logout successful");
+    delete req.user!.sid;
+    delete req.user!.session;
+    return res.clearCookie("sid").end("Logout successful");
+}
+
+export async function waitFor(condition: () => any): Promise<void> {
+    if (!condition()) {
+        await wait(100)
+        await waitFor(condition)
     }
-    res.status(400).end("Logout failed");
 }

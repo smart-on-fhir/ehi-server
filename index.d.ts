@@ -143,34 +143,38 @@ declare namespace EHI {
     /**
      * Can be:
      * 
-     * - `awaiting-input` - The user needs to fill in the form.
+     * - `awaiting-input`
+     *    The user needs to fill in the form.
      * 
-     * - `in-review` - After the form is submitted successfully no more actions
-     *   are required by the user. Then the job switches to "in-review" status,
-     *   meaning that it is waiting for the admin to approve or reject the export.
+     * - `requested`
+     *    After the export is approved by the admin and while the data is being
+     *    exported.
      * 
-     * - `requested` - After the export is approved by the admin and while the
-     *   data is being exported.
+     * - `retrieved`
+     *    All the data transmitted to its destination. At this pont the jobs is
+     *    waiting for the admin to approve it
      * 
-     * - `retrieved` - All the data transmitted to its destination.
+     * - `approved`
+     *    Admin approved this export and it is now visible to the patient
      * 
-     * - `aborted` - The admin or the patient aborted/canceled this export.
+     * - `rejected`
+     *    Admin rejected this export and it is scheduled to be deleted
      * 
-     * - `rejected` - The admin rejected this export.
-     * 
+     * - `aborted`
+     *    The admin or the patient aborted/canceled this export and it is now 
+     *    scheduled to be deleted
      * 
      * **Note** that jobs have certain lifetime. Once they expire they will be
      * deleted within the next `config.jobCleanupMinutes` minutes:
      * 
      * - `awaiting-input` - Does not expire
-     * - `in-review`      - Expire after `config.jobMaxLifetimeMinutes`
      * - `requested`      - Expire after `config.jobMaxLifetimeMinutes`
      * - `retrieved`      - Expire after `config.jobMaxLifetimeMinutes`
+     * - `approved`       - Expire after `config.completedJobLifetimeMinutes`
      * - `aborted`        - Expire immediately
      * - `rejected`       - Expire immediately
      */
     type ExportJobStatus =  "awaiting-input" |
-                            "in-review" |
                             "requested" |
                             "retrieved" |
                             "aborted"   |

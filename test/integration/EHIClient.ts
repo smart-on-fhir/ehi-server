@@ -2,6 +2,7 @@ import { expect }            from "chai"
 import { wait }              from "../../lib"
 import { authorize, SERVER } from "./TestContext"
 import { EHI }               from "../../index"
+import config                from "../../config"
 
 
 export default class EHIClient
@@ -23,8 +24,8 @@ export default class EHIClient
         return fetch(url, options)
     }
 
-    public async kickOff(patientId: string) {
-        const url = `${SERVER.baseUrl}/fhir/Patient/${patientId}/$ehi-export`
+    public async kickOff(patientId: string, prefix = "") {
+        const url = `${SERVER.baseUrl}/${prefix}fhir/Patient/${patientId}/$ehi-export`
         const res = await this.request(url, { method: "POST" });
         expect(res.status, `kickOff failed for ${url}`).to.equal(202)
         const status = res.headers.get('content-location')!
@@ -74,5 +75,33 @@ export default class EHIClient
 
     public async abort(jobId: string) {
         return this.request(`${SERVER.baseUrl}/jobs/${jobId}/status`, { method: "DELETE" })
+    }
+
+    public async approve(jobId: string) {
+        config.users[0].sid = "TEST_SID";
+        return fetch(`${SERVER.baseUrl}/admin/jobs/${jobId}/approve`, {
+            method: "POST",
+            headers: {
+                cookie: "sid=TEST_SID"
+            }
+        })
+    }
+
+    public async waitForStatus(jobId: string, status: string) {
+        config.users[0].sid = "TEST_SID";
+        const options = { headers: { cookie: "sid=TEST_SID" }}
+
+        const res = await fetch(`${SERVER.baseUrl}/admin/jobs/${jobId}`, options)
+
+        if (res.status >= 400) {
+            throw new Error((await res.text()) || res.statusText)
+        }
+
+        const job = await res.json()
+
+        if (job.status !== status) {
+            await wait(100)
+            await this.waitForStatus(jobId, status)
+        }
     }
 }

@@ -10,12 +10,7 @@ import { createOperationOutcome, getRequestBaseURL } from "."
 
 export async function customizeAndStart(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
-    await job.customizeAndStart(req)
-    return res.json(job)
-}
-
-export async function getJobMetadata(req: Request, res: Response) {
-    const job = await ExportJob.byId(req.params.id)
+    await job.customizeAndStart(getRequestBaseURL(req), req.body.parameters, req.body.authorizations)
     res.json(job)
 }
 
@@ -55,8 +50,18 @@ export async function checkStatus(req: Request, res: Response) {
         return res.status(404).json(createOperationOutcome((ex as Error).message))
     }
 
-    if (job.status === "retrieved") {
+    if (job.status === "approved" && job.manifest) {
         return res.json(job.manifest)
+    }
+
+    // If the EHI Server provided a patient interaction link in the Kick-off
+    // response and the patient has not completed the form at that link, the EHI
+    // Server SHALL return the same Link header as part of the status response
+    // (along with optional Retry-After and X-Progress headers as described in
+    // the Async Pattern)
+    if (job.status === "awaiting-input") {
+        const baseUrl = getRequestBaseURL(req);
+        res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${job.patient.id}; rel="patient-interaction"`)
     }
 
     res.header("X-Progress" , job.status)
@@ -119,16 +124,12 @@ export async function getJob(req: Request, res: Response) {
 
 export async function approveJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
-    job.status = "approved"
-    await job.save()
-    res.json(job)
+    res.json(await job.approve())
 }
 
 export async function rejectJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
-    job.status = "rejected"
-    await job.save()
-    res.json(job)
+    res.json(await job.reject())
 }
 
 export async function addFiles(req: Request, res: Response) {

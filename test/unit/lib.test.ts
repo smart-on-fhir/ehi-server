@@ -64,6 +64,17 @@ describe("lib", () => {
             await job.destroy()
         })
 
+        it ("destroy missing id", async () => {
+            const job = await ExportJob.create(FIRST_PATIENT_ID)
+            await job.destroy()
+            try {
+                await job.destroy()
+                throw new Error("Did not throw")
+            } catch (ex) {
+                expect((ex as Error).message).to.equal(`Unable to destroy job with id '${job.id}'.`)
+            }
+        })
+
         it ("destroyIfNeeded for aborted jobs", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "aborted"
@@ -77,16 +88,16 @@ describe("lib", () => {
             await ExportJob.destroyIfNeeded(job.id)
         })
 
-        it ("destroyIfNeeded for retrieved jobs", async () => {
+        it ("destroyIfNeeded for approved jobs", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)
-            job.status = "retrieved"
+            job.status = "approved"
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
 
-        it ("destroyIfNeeded for in-review jobs", async () => {
+        it ("destroyIfNeeded for retrieved jobs", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)
-            job.status = "in-review"
+            job.status = "retrieved"
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
