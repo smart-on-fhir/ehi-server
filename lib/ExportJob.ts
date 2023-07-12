@@ -61,6 +61,8 @@ export default class ExportJob
      */
     protected attachments: fhir4.Attachment[];
 
+    autoApprove = false
+
     /**
      * @param patientId The ID of the exported patient
      */
@@ -229,6 +231,9 @@ export default class ExportJob
 
     public async kickOff(baseUrl: string)
     {
+        this.status = "requested"
+        await this.save()
+        
         const patientPath   = patients.get(this.patient.id)!.file
         const patientData   = await readFile(patientPath, "utf8")
         const patientBundle = JSON.parse(patientData) as fhir4.Bundle
@@ -269,7 +274,7 @@ export default class ExportJob
 
         this.completedAt = Date.now()
         this.manifest = manifest
-        this.status = "retrieved"
+        this.status = this.autoApprove ? "approved" : "retrieved"
         await this.save()
     }
 
@@ -299,24 +304,31 @@ export default class ExportJob
             completedAt   : this.completedAt,
             parameters    : this.parameters,
             authorizations: this.authorizations,
-            attachments   : this.attachments
+            attachments   : this.attachments,
+            autoApprove   : this.autoApprove
         }
     }
 
-    public async customizeAndStart(
-        baseUrl: string,
-        parameters: EHI.ExportJobInformationParameters,
-        authorizations: EHI.ExportJobAuthorizations
+    public async customize(
+        parameters?: EHI.ExportJobInformationParameters,
+        authorizations?: EHI.ExportJobAuthorizations
     ) {
         if (this.status !== "awaiting-input") {
-            throw new HttpError('Exports job already started').status(400)
+            throw new HttpError('Exports job already customized').status(400)
         }
 
-        this.parameters     = parameters
-        this.authorizations = authorizations
-        this.status         = "requested"
-        await this.save()
-        this.kickOff(baseUrl); // DON'T WAIT FOR THIS!
+        if (parameters) {
+            this.parameters = parameters
+        }
+
+        if (authorizations) {
+            this.authorizations = authorizations
+        }
+
+        if (parameters || authorizations) {
+            await this.save()
+        }
+
         return this
     }
 

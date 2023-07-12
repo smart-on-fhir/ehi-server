@@ -10,7 +10,8 @@ import { createOperationOutcome, getRequestBaseURL } from "."
 
 export async function customizeAndStart(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
-    await job.customizeAndStart(getRequestBaseURL(req), req.body.parameters, req.body.authorizations)
+    await job.customize(req.body.parameters, req.body.authorizations)
+    job.kickOff(getRequestBaseURL(req)) // DON'T WAIT
     res.json(job)
 }
 
@@ -72,9 +73,17 @@ export async function checkStatus(req: Request, res: Response) {
 export async function kickOff(req: Request, res: Response) {
     const baseUrl = getRequestBaseURL(req);
     const job = await ExportJob.create(req.params.id)
+    if (req.url.includes("/auto-approve/")) {
+        job.autoApprove = true
+        await job.save()
+    }
+    if (!req.url.includes("/no-form/")) {
+        res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${req.params.id}; rel="patient-interaction"`)
+    } else {
+        job.kickOff(baseUrl)
+    }
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")
-    res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${req.params.id}; rel="patient-interaction"`)
     res.status(202).json({ message: "Please follow the url in the link header to customize your export" })
 }
 

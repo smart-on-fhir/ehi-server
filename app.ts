@@ -78,10 +78,11 @@ app.get("/fhir/metadata", wrap(getMetadata))
 // -----------------------------------------------------------------------------
 
 // kick-off
-app.post("/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
-
-// kick-off and auto-approve
-app.post("/direct/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, notImplemented)
+app.post("/fhir/Patient/:id/\\$ehi-export"                     , requireSmartAuth, wrap(Gateway.kickOff))
+app.post("/auto-approve/fhir/Patient/:id/\\$ehi-export"        , requireSmartAuth, wrap(Gateway.kickOff))
+app.post("/no-form/fhir/Patient/:id/\\$ehi-export"             , requireSmartAuth, wrap(Gateway.kickOff))
+app.post("/no-form/auto-approve/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
+app.post("/auto-approve/no-form/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
 
 // get job status
 app.get("/jobs/:id/status", requireSmartAuth, wrap(Gateway.checkStatus))

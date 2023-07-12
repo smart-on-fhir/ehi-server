@@ -78,7 +78,7 @@ describe("Jobs", () => {
         await job.save()
         expect(job.manifest).to.not.exist
         expect(job.status).to.equal("awaiting-input")
-        job.customizeAndStart(SERVER.baseUrl, job.parameters, job.authorizations)
+        job.kickOff(SERVER.baseUrl)
         expect(job.status).to.equal("requested")
         await waitFor(() => job.manifest)
         expect(job.status).to.equal("retrieved")
@@ -89,7 +89,7 @@ describe("Jobs", () => {
 
     it ("rejects double approve", async () => {
         const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
-        await job.customizeAndStart(SERVER.baseUrl, job.parameters, job.authorizations)
+        job.kickOff(SERVER.baseUrl)
         await waitFor(() => job.manifest)
         await job.approve()
         expect(job.status).to.equal("approved")
@@ -101,7 +101,7 @@ describe("Jobs", () => {
 
     it ("rejects double reject", async () => {
         const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
-        await job.customizeAndStart(SERVER.baseUrl, job.parameters, job.authorizations)
+        job.kickOff(SERVER.baseUrl)
         await waitFor(() => job.manifest)
         await job.reject()
         expect(job.status).to.equal("rejected")
@@ -125,7 +125,7 @@ describe("Jobs", () => {
         expect(job.manifest).to.not.exist
 
         // Submit the customization form (requested) ---------------------------
-        job.customizeAndStart(SERVER.baseUrl, job.parameters, job.authorizations)
+        job.kickOff(SERVER.baseUrl)
         expect(job.status).to.equal("requested")
         
         // Working... ----------------------------------------------------------

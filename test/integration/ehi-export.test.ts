@@ -37,35 +37,122 @@ function testAdminEndpoint(path: string, method: "get" | "post" | "delete" = "ge
 describe("Kick off", () => {
 
     it ('requires auth', async () => {
-        await request(SERVER.baseUrl)
-            .post("/fhir/Patient/123/$ehi-export")
-            .expect(401, /Unauthorized! No authorization header provided in request/)
+        for (const url of [
+            "/fhir/Patient/123/$ehi-export",
+            "/auto-approve/fhir/Patient/123/$ehi-export",
+            "/no-form/fhir/Patient/123/$ehi-export",
+            "/no-form/auto-approve/fhir/Patient/123/$ehi-export",
+            "/auto-approve/no-form/fhir/Patient/123/$ehi-export"
+        ]) {
+            await request(SERVER.baseUrl)
+                .post(url)
+                .expect(401, /Unauthorized! No authorization header provided in request/)
+        }
     });
     
     it ('requires valid bearer token', async () => {
-        await request(SERVER.baseUrl)
-            .post("/fhir/Patient/123/$ehi-export")
-            .set("authorization", "Bearer xxxxx")
-            .expect(401, /Invalid token/)
+        for (const url of [
+            "/fhir/Patient/123/$ehi-export",
+            "/auto-approve/fhir/Patient/123/$ehi-export",
+            "/no-form/fhir/Patient/123/$ehi-export",
+            "/no-form/auto-approve/fhir/Patient/123/$ehi-export",
+            "/auto-approve/no-form/fhir/Patient/123/$ehi-export"
+        ]) {
+            await request(SERVER.baseUrl)
+                .post(url)
+                .set("authorization", "Bearer xxxxx")
+                .expect(401, /Invalid token/)
+        }
     });
 
     it ('requires valid JWT bearer', async () => {
-        await request(SERVER.baseUrl)
-            .post("/fhir/Patient/123/$ehi-export")
-            .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
-            .expect(400, /Invalid token/)
+        for (const url of [
+            "/fhir/Patient/123/$ehi-export",
+            "/auto-approve/fhir/Patient/123/$ehi-export",
+            "/no-form/fhir/Patient/123/$ehi-export",
+            "/no-form/auto-approve/fhir/Patient/123/$ehi-export",
+            "/auto-approve/no-form/fhir/Patient/123/$ehi-export"
+        ]) {
+            await request(SERVER.baseUrl)
+                .post(url)
+                .set("authorization", "Bearer " + jwt.sign("whatever", config.jwtSecret))
+                .expect(400, /Invalid token/)
+        }
     });
 
-    it ('If no params are passed replies with 202 and link', async () => {
-        const result = await new EHIClient().kickOff(FIRST_PATIENT_ID)
-        expect(result.link).to.exist;
-        expect(result.status).to.exist;
-        expect(result.response.status).to.equal(202)
+    it ('If no params are passed replies with 202 and Content-Location header', async () => {
+        for (const prefix of [
+            "",
+            "auto-approve/",
+            "no-form/",
+            "no-form/auto-approve/",
+            "auto-approve/no-form/"
+        ]) {
+            const result = await new EHIClient().kickOff(FIRST_PATIENT_ID, prefix)
+            expect(result.status).to.exist;
+            expect(result.response.status).to.equal(202)
+        }
     });
 
+    it ("kick-off & no-form", async () => {
+        for (const prefix of [
+            "no-form/auto-approve/",
+            "auto-approve/no-form/"
+        ]) {
+            const client = new EHIClient()
+            const { jobId, link, status } = await client.kickOff(FIRST_PATIENT_ID, prefix)
+            expect(link).to.not.exist;
+
+            const res = await client.request(status)
+            expect(res.ok).to.equal(true)
+            expect(res.headers.has("link"), "The status endpoint should not include a link header").to.equal(false)
+
+            await client.waitForStatus(jobId, "approved")
+            await client.approve(jobId)
+            
+            const manifest = await client.waitForExport(status)
+            expect(manifest).to.exist
+        }
+
+        const client = new EHIClient()
+        const { jobId, link, status } = await client.kickOff(FIRST_PATIENT_ID, "no-form/")
+        expect(link).to.not.exist;
+
+        const res = await client.request(status)
+        expect(res.ok).to.equal(true)
+        expect(res.headers.has("link"), "The status endpoint should not include a link header").to.equal(false)
+
+        await client.waitForStatus(jobId, "retrieved")
+        await client.approve(jobId)
+        
+        const manifest = await client.waitForExport(status)
+        expect(manifest).to.exist
+    });
+
+    it ("kick-off & auto-approve", async () => {
+        for (const prefix of [
+            "no-form/auto-approve/",
+            "auto-approve/no-form/"
+        ]) {
+            const client = new EHIClient()
+            const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, prefix)
+            expect(status).to.exist;
+            expect(response.status).to.equal(202)    
+            await client.waitForStatus(jobId, "approved")
+            const manifest = await client.waitForExport(status)
+            expect(manifest).to.exist
+        }
+
+        const client = new EHIClient()
+        const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, "auto-approve/")
+        expect(status).to.exist;
+        expect(response.status).to.equal(202)    
+        await client.customize(jobId)
+        await client.waitForStatus(jobId, "approved")
+        const manifest = await client.waitForExport(status)
+        expect(manifest).to.exist
+    });
 })
-
-// TODO: direct kick-off
 
 describe("customization parameters", () => {
 
@@ -120,7 +207,7 @@ describe("customization parameters", () => {
         await client.customize(jobId, { parameters })
         const res = await client.customize(jobId, { parameters })
         expect(res.status).to.equal(400);
-        expect(await res.text()).to.equal("Exports job already started");
+        expect(await res.text()).to.equal("Exports job already customized");
     })
 
     it ("Includes link header in the status endpoint if needed", async () => {

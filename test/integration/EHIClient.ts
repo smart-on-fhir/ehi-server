@@ -66,7 +66,7 @@ export default class EHIClient
         }
 
         if (res.status === 202) {
-            await wait(1000)
+            await wait(100)
             return await this.waitForExport(statusLocation)
         }
 
