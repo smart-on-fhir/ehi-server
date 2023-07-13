@@ -298,24 +298,26 @@ describe ("download", () => {
     })
 
     it ('Downloading attachments', async () => {
+        
+        // Create export and wait for the bulk part to complete
+        // ---------------------------------------------------------------------
         const client = new EHIClient()
         const { status, jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
         
-        // Upload 2 files ------------------------------------------------------
-        
+        // Upload 2 files
+        // ---------------------------------------------------------------------
         config.users[0].sid = "TEST_SID";
-        
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)
             .set('Cookie', ['sid=TEST_SID'])
             .attach("attachments", "test/fixtures/img3.png")
             .attach("attachments", "test/fixtures/img2.png")
             .expect(200)
-        
-        // ---------------------------------------------------------------------
 
+        // Approve export and fetch the manifest
+        // ---------------------------------------------------------------------
         await client.approve(jobId)
         const manifest = await client.waitForExport(status!)
         // console.log(manifest)
@@ -323,11 +325,8 @@ describe ("download", () => {
         expect(manifest.output).to.be.instanceOf(Array)
         expect(manifest.output.length).to.equal(6)
         
-        const entry = manifest.output.find((x: any) => x.type === "DocumentReference")
-        expect(entry).to.exist
-        expect(entry!.url).to.match(/\battachments\.DocumentReference\.ndjson$/)
-        expect(entry!.count).to.equal(2)
-
+        // Download and validate Patient.ndjson
+        // ---------------------------------------------------------------------
         const url = manifest.output.find((x: any) => x.type === "Patient")!.url
         const res3 = await client.request(url);
         expect(res3.headers.get("content-type")).to.equal("application/fhir+ndjson");
@@ -337,6 +336,23 @@ describe ("download", () => {
         expect(lines.length).to.equal(1)
         expect(() => lines.map(l => JSON.parse(l))).not.to.throw
         expect(JSON.parse(lines[0]).id).to.equal(PATIENT_ID)
+
+        // Download and validate attachments.DocumentReference.ndjson
+        // ---------------------------------------------------------------------
+        const entry = manifest.output.find((x: any) => x.type === "DocumentReference")!
+        expect(entry).to.exist
+        expect(entry.url).to.match(/\battachments\.DocumentReference\.ndjson$/)
+        expect(entry.count).to.equal(2)
+        const res4 = await client.request(entry.url);
+        const ndjson2 = await res4.text()
+        const lines2 = ndjson2.trim().split("\n")
+        expect(lines.length).to.equal(1)
+        const { content } = JSON.parse(lines2[0])
+        for (const item of content) {
+            const res = await client.request(item.attachment.url);
+            expect(res.headers.get("content-type")).to.equal(item.attachment.contentType);
+            expect(res.headers.get("content-length")).to.equal(item.attachment.size + "");
+        }
     })
 
 })

@@ -40,10 +40,6 @@ const upload = multer({
 })
 const requireSmartAuth = validateToken()
 
-function notImplemented(req: Request, res: Response) {
-    res.status(500).end("Not implemented yet")
-}
-
 
 // -----------------------------------------------------------------------------
 //                                SMART & FHIR
@@ -78,11 +74,13 @@ app.get("/fhir/metadata", wrap(getMetadata))
 // -----------------------------------------------------------------------------
 
 // kick-off
-app.post("/fhir/Patient/:id/\\$ehi-export"                     , requireSmartAuth, wrap(Gateway.kickOff))
-app.post("/auto-approve/fhir/Patient/:id/\\$ehi-export"        , requireSmartAuth, wrap(Gateway.kickOff))
-app.post("/no-form/fhir/Patient/:id/\\$ehi-export"             , requireSmartAuth, wrap(Gateway.kickOff))
-app.post("/no-form/auto-approve/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
-app.post("/auto-approve/no-form/fhir/Patient/:id/\\$ehi-export", requireSmartAuth, wrap(Gateway.kickOff))
+app.post([
+                         "/fhir/Patient/:id/\\$ehi-export",
+            "/auto-approve/fhir/Patient/:id/\\$ehi-export",
+                 "/no-form/fhir/Patient/:id/\\$ehi-export",
+    "/no-form/auto-approve/fhir/Patient/:id/\\$ehi-export",
+    "/auto-approve/no-form/fhir/Patient/:id/\\$ehi-export",
+], requireSmartAuth, wrap(Gateway.kickOff))
 
 // get job status
 app.get("/jobs/:id/status", requireSmartAuth, wrap(Gateway.checkStatus))
@@ -93,8 +91,11 @@ app.delete("/jobs/:id/status", requireSmartAuth, wrap(Gateway.abort))
 // Render job customization form
 app.get("/jobs/:id/customize", wrap(Gateway.renderForm))
 
-// download resource file
+// download bulk file
 app.get("/jobs/:id/download/:file", requireSmartAuth, wrap(Gateway.downloadFile))
+
+// download attachment
+app.get("/jobs/:id/download/attachments/:file", requireSmartAuth, wrap(Gateway.downloadAttachment))
 
 // customize and start job
 app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
@@ -111,8 +112,6 @@ app.post("/admin/jobs/:id/approve", requireAdminAuth, wrap(Gateway.approveJob))
 app.post("/admin/jobs/:id/reject", requireAdminAuth, wrap(Gateway.rejectJob))
 app.post("/admin/jobs/:id/add-files", requireAdminAuth, upload.array("attachments", 10), wrap(Gateway.addFiles))
 app.post("/admin/jobs/:id/remove-files", requireAdminAuth, wrap(Gateway.removeFiles))
-app.get("/admin/jobs/:id/download/:file", requireAdminAuth, notImplemented)
-app.get("/admin/jobs/:id/download/attachments/:file", requireAdminAuth, notImplemented)
 
 
 // Other -----------------------------------------------------------------------

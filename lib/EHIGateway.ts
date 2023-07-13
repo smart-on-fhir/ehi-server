@@ -37,6 +37,15 @@ export async function downloadFile(req: Request, res: Response) {
     })
 }
 
+export async function downloadAttachment(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    const filePath = Path.join(job.path, "attachments", req.params.file)
+    if (!statSync(filePath, { throwIfNoEntry: false })?.isFile()) {
+        throw new HttpError(`This job has no attachment "${req.params.file}"`).status(404)
+    }
+    res.sendFile(filePath)
+}
+
 export async function abort(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     await job.abort()
