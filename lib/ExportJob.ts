@@ -422,6 +422,5 @@ export default class ExportJob
         // return this.save()
     }
 
-    }
 }
 
