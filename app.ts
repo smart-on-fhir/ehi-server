@@ -104,14 +104,15 @@ app.post("/jobs/:id", wrap(Gateway.customizeAndStart))
 // -----------------------------------------------------------------------------
 //                                 ADMIN API
 // -----------------------------------------------------------------------------
-app.post("/admin/login", wrap(login))
-app.get("/admin/logout", requireAdminAuth, wrap(logout))
-app.get("/admin/jobs", requireAdminAuth, wrap(Gateway.listJobs))
-app.get("/admin/jobs/:id", requireAdminAuth, wrap(Gateway.getJob))
-app.post("/admin/jobs/:id/approve", requireAdminAuth, wrap(Gateway.approveJob))
-app.post("/admin/jobs/:id/reject", requireAdminAuth, wrap(Gateway.rejectJob))
-app.post("/admin/jobs/:id/add-files", requireAdminAuth, upload.array("attachments", 10), wrap(Gateway.addFiles))
-app.post("/admin/jobs/:id/remove-files", requireAdminAuth, wrap(Gateway.removeFiles))
+app.post  ("/admin/login",                                   wrap(login))
+app.get   ("/admin/logout"               , requireAdminAuth, wrap(logout))
+app.get   ("/admin/jobs"                 , requireAdminAuth, wrap(Gateway.listJobs))
+app.get   ("/admin/jobs/:id"             , requireAdminAuth, wrap(Gateway.getJob))
+app.post  ("/admin/jobs/:id/approve"     , requireAdminAuth, wrap(Gateway.approveJob))
+app.post  ("/admin/jobs/:id/reject"      , requireAdminAuth, wrap(Gateway.rejectJob))
+app.post  ("/admin/jobs/:id/add-files"   , requireAdminAuth, upload.array("attachments", 10), wrap(Gateway.addFiles))
+app.post  ("/admin/jobs/:id/remove-files", requireAdminAuth, wrap(Gateway.removeFiles))
+app.delete("/admin/jobs/:id"             , requireAdminAuth, wrap(Gateway.destroyJob))
 
 
 // Other -----------------------------------------------------------------------

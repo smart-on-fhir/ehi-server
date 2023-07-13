@@ -418,7 +418,10 @@ export default class ExportJob
             throw new HttpError(`Only retrieved jobs can be rejected`).status(400)
         }
         this.status = "rejected"
-        return this.save()
+        return this.destroy()
+        // return this.save()
+    }
+
     }
 }
 

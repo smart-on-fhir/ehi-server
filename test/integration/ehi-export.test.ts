@@ -765,6 +765,3 @@ describe("POST /admin/jobs/:id/remove-files", () => {
             })
     });
 })
-
-// TODO: describe("GET /admin/jobs/:id/download/:file", () => {})
-// TODO: describe("GET /admin/jobs/:id/download/attachments/:file", () => {})

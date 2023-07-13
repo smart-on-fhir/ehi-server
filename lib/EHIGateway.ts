@@ -172,3 +172,8 @@ export async function removeFiles(req: Request, res: Response) {
     }
     res.json(job)
 }
+
+export async function destroyJob(req: Request, res: Response) {
+    const job = await ExportJob.byId(req.params.id)
+    res.json(await job.destroy())
+}
