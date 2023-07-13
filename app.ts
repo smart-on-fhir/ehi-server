@@ -128,7 +128,9 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     res.status(error.code || 500).json({ error: error.message || 'Internal Server Error' });
 })
 
-start()
+if (process.env.NODE_ENV !== "test") {
+    start()
+}
 
 // istanbul ignore next - Only start is not imported imported
 if (require.main?.filename === __filename) {
