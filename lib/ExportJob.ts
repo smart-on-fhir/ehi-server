@@ -113,15 +113,36 @@ export default class ExportJob
 
     public static async byId(id: string)
     {
+        const path = Path.join(config.jobsDir, id, "job.json")
+        
         try {
-            const path = Path.join(config.jobsDir, id, "job.json")
-            const json = JSON.parse(await readFile(path, "utf8"))
+            var data = await readFile(path, "utf8")
+        } catch {
+            throw new HttpError("Export job not found!").status(404)
+        }
+
+        try {
+            var json = JSON.parse(data)
+        } catch (e) {
+            throw new HttpError("Export job corrupted! Failed to parse data from %s as JSON: %s", path, e).status(500)
+        }
+
+        try {
             const job = new ExportJob(json.patient.id, json.id)
             Object.assign(job, json)
             return job
-        } catch {
-            throw new HttpError("Export job not found! Perhaps it has already completed.").status(404)
+        } catch (e) {
+            throw new HttpError("Export job could not be loaded %s", e).status(500)
         }
+
+        // try {
+        //     const json = JSON.parse(await readFile(path, "utf8"))
+        //     const job = new ExportJob(json.patient.id, json.id)
+        //     Object.assign(job, json)
+        //     return job
+        // } catch {
+        //     throw new HttpError("Export job not found!").status(404)
+        // }
     }
 
     /**

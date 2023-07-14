@@ -94,7 +94,7 @@ describe("Kick off", () => {
         }
     });
 
-    it ("kick-off & no-form", async () => {
+    it ("kick-off @ no-form", async () => {
         for (const prefix of [
             "no-form/auto-approve/",
             "auto-approve/no-form/"
@@ -129,25 +129,32 @@ describe("Kick off", () => {
         expect(manifest).to.exist
     });
 
-    it ("kick-off & auto-approve", async () => {
-        for (const prefix of [
-            "no-form/auto-approve/",
-            "auto-approve/no-form/"
-        ]) {
-            const client = new EHIClient()
-            const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, prefix)
-            expect(status).to.exist;
-            expect(response.status).to.equal(202)    
-            await client.waitForStatus(jobId, "approved")
-            const manifest = await client.waitForExport(status)
-            expect(manifest).to.exist
-        }
-
+    it ("kick-off @ auto-approve", async () => {
         const client = new EHIClient()
         const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, "auto-approve/")
         expect(status).to.exist;
         expect(response.status).to.equal(202)    
         await client.customize(jobId)
+        await client.waitForStatus(jobId, "approved")
+        const manifest = await client.waitForExport(status)
+        expect(manifest).to.exist
+    })
+
+    it ("kick-off @ no-form/auto-approve", async () => {
+        const client = new EHIClient()
+        const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, "no-form/auto-approve/")
+        expect(status).to.exist;
+        expect(response.status).to.equal(202)    
+        await client.waitForStatus(jobId, "approved")
+        const manifest = await client.waitForExport(status)
+        expect(manifest).to.exist
+    });
+
+    it ("kick-off @ auto-approve/no-form", async () => {
+        const client = new EHIClient()
+        const { jobId, status, response } = await client.kickOff(FIRST_PATIENT_ID, "auto-approve/no-form/")
+        expect(status).to.exist;
+        expect(response.status).to.equal(202)    
         await client.waitForStatus(jobId, "approved")
         const manifest = await client.waitForExport(status)
         expect(manifest).to.exist
@@ -160,7 +167,7 @@ describe("customization parameters", () => {
         const client = new EHIClient()
         const res = await client.customize("bad-id")
         expect(res.status).to.equal(404);
-        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
+        expect(await res.text()).to.equal("Export job not found!");
     })
 
     it ("accepts customization parameters", async () => {
@@ -498,7 +505,7 @@ describe("GET /admin/jobs/:id", () => {
     it ("rejects bad job IDs", async () => {
         const res = await fetchJob("bad-id")
         expect(res.status).to.equal(404);
-        expect(await res.text()).to.equal("Export job not found! Perhaps it has already completed.");
+        expect(await res.text()).to.equal("Export job not found!");
     })
 
     it ("provides metadata after export is complete", async () => {
