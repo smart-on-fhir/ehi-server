@@ -1,11 +1,10 @@
 import "mocha"
-import path                              from "path"
-import { expect }                        from "chai"
-import { AddressInfo, Server }           from "net"
-import { readdirSync, rmSync, statSync } from "fs"
-import server                            from "../../app"
-import patients                          from "../../data/db"
-import { stop }                          from "../../lib/ExportJobManager"
+import path                    from "path"
+import { readdir, rm }         from "fs/promises"
+import { expect }              from "chai"
+import { AddressInfo, Server } from "net"
+import server                  from "../../app"
+import patients                from "../../data/db"
 
 
 let testServer: Server | null
@@ -44,18 +43,17 @@ export const FIRST_PATIENT_ID = getFirstPatientId();
 
 before(async () => { await SERVER.start() });
 
-after(async () => { await SERVER.stop(); cleanup(); });
+after(async () => { await SERVER.stop(); await cleanup(); });
 
-function cleanup() {
+export async function cleanup() {
     const base  = path.join(__dirname, "../../test-jobs")
-    const items = readdirSync(base);
-    for (const id of items) {
-        const dir = path.join(base, id)
-        if (statSync(dir).isDirectory()) {
-            rmSync(dir, { force: true, recursive: true })
+    const items = await readdir(base, { withFileTypes: true });
+    for (const entry of items) {
+        if (entry.isDirectory()) {
+            const dir = path.join(base, entry.name)
+            await rm(dir, { force: true, recursive: true })
         }
     }
-    stop()
 }
 
 export function getFirstPatientId() {

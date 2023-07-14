@@ -1,11 +1,15 @@
-import { expect }                             from "chai"
-import { basename, join }                     from "path"
-import config                                 from "../../config"
-import { getPrefixedFilePath, humanName, validateParam } from "../../lib"
-import { OAuthError }                         from "../../lib/errors"
-import ExportJob                              from "../../lib/ExportJob"
-import { check }                              from "../../lib/ExportJobManager"
-import { FIRST_PATIENT_ID }                   from "../integration/TestContext"
+import { expect }                    from "chai"
+import { basename, join }            from "path"
+import config                        from "../../config"
+import { OAuthError }                from "../../lib/errors"
+import ExportJob                     from "../../lib/ExportJob"
+import { check }                     from "../../lib/ExportJobManager"
+import { cleanup, FIRST_PATIENT_ID } from "../integration/TestContext"
+import {
+    getPrefixedFilePath,
+    humanName,
+    validateParam
+} from "../../lib"
 
 describe("lib", () => {
     describe("validateParam", () => {
@@ -58,6 +62,8 @@ describe("lib", () => {
     })
 
     describe("jobs", () => {
+
+        afterEach(cleanup);
 
         it ("destroy", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)

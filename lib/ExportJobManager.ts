@@ -1,17 +1,17 @@
-import { readdirSync, statSync } from "fs"
-import Path                      from "path"
-import config                    from "../config"
-import ExportJob                 from "./ExportJob"
+import Path        from "path"
+import { readdir } from "fs/promises"
+import config      from "../config"
+import ExportJob   from "./ExportJob"
 
 
 let timer: NodeJS.Timeout;
 
 export async function check(dir = "jobs") {
     const base  = Path.join(__dirname, "..", dir)
-    const items = readdirSync(base);
-    for (const id of items) {
-        if (statSync(Path.join(base, id)).isDirectory()) {
-            await ExportJob.destroyIfNeeded(id)
+    const items = await readdir(base, { withFileTypes: true });
+    for (const entry of items) {
+        if (entry.isDirectory()) {
+            await ExportJob.destroyIfNeeded(entry.name).catch(console.error)
         }
     }
 }

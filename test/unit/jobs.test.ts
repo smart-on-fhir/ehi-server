@@ -1,15 +1,18 @@
-import Path                 from "path"
-import { expect }           from "chai"
-import { readFile }         from "fs/promises"
-import config               from "../../config"
-import ExportJob            from "../../lib/ExportJob"
-import { FIRST_PATIENT_ID, SERVER } from "../integration/TestContext"
-import { waitFor }          from "../../lib"
+import Path                                  from "path"
+import { afterEach }                         from "mocha"
+import { expect }                            from "chai"
+import { chmod, readFile, rm, writeFile }    from "fs/promises"
+import { cleanup, FIRST_PATIENT_ID, SERVER } from "../integration/TestContext"
+import config                                from "../../config"
+import ExportJob                             from "../../lib/ExportJob"
+import { waitFor }                           from "../../lib"
 
 
 
 
 describe("Jobs", () => {
+
+    afterEach(cleanup);
     
     it ("constructor requires patient id argument", () => {
         expect(() => new ExportJob()).to.throw();
@@ -55,6 +58,54 @@ describe("Jobs", () => {
         expect(job2.parameters).to.deep.equal(job1.parameters)
         expect(job2.authorizations).to.deep.equal(job1.authorizations)
         expect(job2.attachments).to.deep.equal(job1.attachments)
+    })
+
+    it ("byId if job.json is missing", async () => {
+        const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
+        await job.save()
+        await rm(Path.join(job.path), { recursive: true, force: true })
+        await ExportJob.byId(job.id).then(
+            () => { throw new Error("Did not throw") },
+            ex => {
+                expect((ex as Error).message).to.match(/Export job not found/)
+            }
+        )
+    })
+
+    it ("byId if job.json is messed up", async () => {
+        const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
+        await job.save()
+        await writeFile(Path.join(job.path, "job.json"), "mess", "utf8")
+        await ExportJob.byId(job.id).then(
+            () => { throw new Error("Did not throw") },
+            ex => {
+                expect((ex as Error).message).to.match(/Export job corrupted/)
+            }
+        )
+    })
+
+    it ("byId if job.json is unreadable", async () => {
+        const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
+        await job.save()
+        await chmod(Path.join(job.path, "job.json"), 222)
+        await ExportJob.byId(job.id).then(
+            () => { throw new Error("Did not throw") },
+            ex => {
+                expect((ex as Error).message).to.match(/Export job not readable/)
+            }
+        )
+    })
+
+    it ("byId if job.json contains invalid data", async () => {
+        const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
+        await job.save()
+        await writeFile(Path.join(job.path, "job.json"), "{}", "utf8")
+        await ExportJob.byId(job.id).then(
+            () => { throw new Error("Did not throw") },
+            ex => {
+                expect((ex as Error).message).to.match(/Export job could not be loaded/)
+            }
+        )
     })
 
     it ("kickOff", async () => {
@@ -114,7 +165,7 @@ describe("Jobs", () => {
     it ("getAugmentedManifest before adding attachments", async () => {
         const job: ExportJob = new ExportJob(FIRST_PATIENT_ID)
         expect(job.manifest).to.equal(null)
-        expect(job.getAugmentedManifest()).to.equal(null)
+        expect(await job.getAugmentedManifest()).to.equal(null)
     })
 
     it ("job status lifecycle", async () => {

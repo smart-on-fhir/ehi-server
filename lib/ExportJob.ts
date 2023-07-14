@@ -1,11 +1,11 @@
-import Path                                            from "path"
-import {existsSync, rmSync, statSync, writeFileSync }  from "fs"
-import { appendFile, copyFile, mkdir, readFile, unlink, writeFile } from "fs/promises"
-import crypto                                          from "crypto"
-import patients                                        from "../data/db"
-import config                                          from "../config"
-import { HttpError }                                   from "./errors"
-import { EHI }                                         from "../index"
+import Path                    from "path"
+import {existsSync, statSync } from "fs"
+import { appendFile, copyFile, mkdir, readFile, rm, unlink, writeFile } from "fs/promises"
+import crypto                  from "crypto"
+import patients                from "../data/db"
+import config                  from "../config"
+import { HttpError }           from "./errors"
+import { EHI }                 from "../index"
 import { getPath, getPrefixedFilePath, humanName, wait } from "."
 
 
@@ -73,12 +73,11 @@ export default class ExportJob
 
     public async destroy()
     {
-        const path = Path.join(config.jobsDir, this.id)
-        try {
-            rmSync(path, { recursive: true })
-        } catch (ex) {
-            throw new Error(`Unable to destroy job with id '${this.id}'.`)
+        if (!statSync(this.path, { throwIfNoEntry: false })?.isDirectory()) {
+            throw new HttpError(`Unable to destroy job with id '${this.id}'.`).status(404)
         }
+
+        await rm(this.path, { recursive: true, maxRetries: 10, force: true })
         return this;
     }
 
@@ -114,35 +113,31 @@ export default class ExportJob
     public static async byId(id: string)
     {
         const path = Path.join(config.jobsDir, id, "job.json")
-        
-        try {
-            var data = await readFile(path, "utf8")
-        } catch {
+
+        if (!statSync(path, { throwIfNoEntry: false })?.isFile()) {
             throw new HttpError("Export job not found!").status(404)
         }
 
         try {
+            var data = await readFile(path, { flag: "r+", encoding: "utf8" })
+        } catch {
+            throw new HttpError("Export job not readable!").status(500)
+        }
+        
+        try {
             var json = JSON.parse(data)
         } catch (e) {
-            throw new HttpError("Export job corrupted! Failed to parse data from %s as JSON: %s", path, e).status(500)
+            throw new HttpError("Export job corrupted! Failed to parse data from %s as JSON: %s; input: %j", path, e, data).status(500)
         }
-
+        
         try {
-            const job = new ExportJob(json.patient.id, json.id)
+            var job = new ExportJob(json.patient.id, json.id)
             Object.assign(job, json)
-            return job
         } catch (e) {
             throw new HttpError("Export job could not be loaded %s", e).status(500)
         }
-
-        // try {
-        //     const json = JSON.parse(await readFile(path, "utf8"))
-        //     const job = new ExportJob(json.patient.id, json.id)
-        //     Object.assign(job, json)
-        //     return job
-        // } catch {
-        //     throw new HttpError("Export job not found!").status(404)
-        // }
+        
+        return job
     }
 
     /**
@@ -308,7 +303,7 @@ export default class ExportJob
         await writeFile(
             Path.join(this.path, `job.json`),
             JSON.stringify(this, null, 4),
-            "utf8"
+            { flag: "w+", encoding: "utf8" }
         );
 
         return this;
@@ -369,9 +364,9 @@ export default class ExportJob
             size: attachment.size,
             url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
         });
-        this.manifest = this.getAugmentedManifest()
-        await this.save()
+        this.manifest = await this.getAugmentedManifest()
         await unlink(src)
+        await this.save()
     }
 
     public async removeAttachment(fileName: string, baseUrl: string) {
@@ -383,12 +378,12 @@ export default class ExportJob
         if (this.attachments.find(x => x.url === url) && statSync(dst, { throwIfNoEntry: false })?.isFile()) {
             await unlink(dst)
             this.attachments = this.attachments.filter(x => x.url !== url)
-            this.manifest = this.getAugmentedManifest()
+            this.manifest = await this.getAugmentedManifest()
             await this.save()
         }
     }
 
-    protected getAugmentedManifest(): EHI.ExportManifest | null {
+    protected async getAugmentedManifest(): Promise<EHI.ExportManifest | null> {
 
         if (!this.attachments.length) {
             return this.manifest
@@ -407,7 +402,7 @@ export default class ExportJob
 
         result.output.push({ type: "DocumentReference", url, count: this.attachments.length })
 
-        writeFileSync(
+        await writeFile(
             Path.join(this.path, "attachments.DocumentReference.ndjson"),
             JSON.stringify({
                 resourceType: "DocumentReference",
@@ -420,7 +415,8 @@ export default class ExportJob
                         display: "generated as part of an ehi-export request"
                     }]
                 }
-            })
+            }),
+            "utf8"
         )
 
         return result as EHI.ExportManifest
@@ -440,7 +436,6 @@ export default class ExportJob
         }
         this.status = "rejected"
         return this.destroy()
-        // return this.save()
     }
 
 }
