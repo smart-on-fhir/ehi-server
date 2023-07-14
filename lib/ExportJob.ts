@@ -2,11 +2,27 @@ import Path                    from "path"
 import {existsSync, statSync } from "fs"
 import { appendFile, copyFile, mkdir, readFile, rm, unlink, writeFile } from "fs/promises"
 import crypto                  from "crypto"
+import lockfile                from "proper-lockfile"
 import patients                from "../data/db"
 import config                  from "../config"
 import { HttpError }           from "./errors"
 import { EHI }                 from "../index"
 import { getPath, getPrefixedFilePath, humanName, wait } from "."
+
+
+
+async function lock(path: string): Promise<() => Promise<void>> {
+    await lockfile.lock(path, {
+        realpath: false,
+        retries: {
+            unref: true,
+            minTimeout: 20,
+            retries: 100,
+            factor: 1
+        }
+    });
+    return () => lockfile.unlock(path, { realpath: false });
+}
 
 
 export default class ExportJob
@@ -77,7 +93,9 @@ export default class ExportJob
             throw new HttpError(`Unable to destroy job with id '${this.id}'.`).status(404)
         }
 
+        const release = await lock(this.path)
         await rm(this.path, { recursive: true, maxRetries: 10, force: true })
+        await release()
         return this;
     }
 
@@ -118,15 +136,19 @@ export default class ExportJob
             throw new HttpError("Export job not found!").status(404)
         }
 
+        const release = await lock(Path.join(config.jobsDir, id))
+        
         try {
             var data = await readFile(path, { flag: "r+", encoding: "utf8" })
         } catch {
+            await release()
             throw new HttpError("Export job not readable!").status(500)
         }
         
         try {
             var json = JSON.parse(data)
         } catch (e) {
+            await release()
             throw new HttpError("Export job corrupted! Failed to parse data from %s as JSON: %s; input: %j", path, e, data).status(500)
         }
         
@@ -134,9 +156,11 @@ export default class ExportJob
             var job = new ExportJob(json.patient.id, json.id)
             Object.assign(job, json)
         } catch (e) {
+            await release()
             throw new HttpError("Export job could not be loaded %s", e).status(500)
         }
         
+        await release()
         return job
     }
 
@@ -296,6 +320,7 @@ export default class ExportJob
 
     async save()
     {
+        const release = await lock(this.path)
         if (!existsSync(this.path)) {
             await mkdir(this.path)
         }
@@ -305,7 +330,7 @@ export default class ExportJob
             JSON.stringify(this, null, 4),
             { flag: "w+", encoding: "utf8" }
         );
-
+        await release()
         return this;
     }
 
@@ -352,6 +377,7 @@ export default class ExportJob
         if (this.status !== "retrieved") {
             throw new HttpError(`Cannot add attachments to export in "${this.status}" state`).status(400)
         }
+        const release = await lock(this.path)
         const src  = Path.join(__dirname, "..", attachment.path)
         const dst  = Path.join(this.path, "attachments")
         const path = getPrefixedFilePath(dst, attachment.originalname)
@@ -366,6 +392,7 @@ export default class ExportJob
         });
         this.manifest = await this.getAugmentedManifest()
         await unlink(src)
+        await release()
         await this.save()
     }
 
@@ -376,9 +403,11 @@ export default class ExportJob
         const dst = Path.join(this.path, "attachments", fileName)
         const url = `${baseUrl}/jobs/${this.id}/download/attachments/${fileName}`
         if (this.attachments.find(x => x.url === url) && statSync(dst, { throwIfNoEntry: false })?.isFile()) {
+            const release = await lock(this.path)
             await unlink(dst)
             this.attachments = this.attachments.filter(x => x.url !== url)
             this.manifest = await this.getAugmentedManifest()
+            await release()
             await this.save()
         }
     }

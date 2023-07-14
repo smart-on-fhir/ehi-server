@@ -768,3 +768,37 @@ describe("POST /admin/jobs/:id/remove-files", () => {
             })
     });
 })
+
+describe("Parallel tasks", function() {
+    
+    this.timeout(10_000)
+
+    const cnt = 50
+    const client = new EHIClient()
+    let results: any[] = []
+
+    it (`Create ${cnt} parallel exports`, async () => {
+        const arr = []
+        for (let i = cnt; i >= 0; i--) {
+            arr.push(client.kickOff(PATIENT_ID))
+        }
+        results = await Promise.all(arr)
+    })
+
+    it (`Customize ${cnt} parallel exports`, async () => {
+        await Promise.all(results.map(r => client.customize(r.jobId)));
+    })
+
+    it (`Wait for ${cnt} parallel exports`, async () => {
+        await Promise.all(results.map(r => client.waitForStatus(r.jobId, "retrieved")));
+    })
+
+    it (`Approve ${cnt} parallel exports`, async () => {
+        await Promise.all(results.map(r => client.approve(r.jobId)));
+    })
+
+    it (`Get the manifest of ${cnt} parallel exports`, async () => {
+        await Promise.all(results.map(r => client.waitForExport(r.status)));
+    })
+
+})
