@@ -281,7 +281,7 @@ declare namespace EHI {
         username: string
         password: string
         sid?: string
-        session?: Record<string, any>
+        
     }
 
 }

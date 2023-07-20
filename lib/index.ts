@@ -285,7 +285,6 @@ export async function login(req: Request, res: Response) {
 export async function logout(req: EHI.UserRequest, res: Response) {
     await wait(config.authDelay);
     delete req.user!.sid;
-    delete req.user!.session;
     return res.clearCookie("sid").end("Logout successful");
 }
 
