@@ -1,5 +1,12 @@
 # ehi-server
-This is an EHI Export Server POC implementation based on https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html. The server supports the following routes:
+This is an EHI Export Server POC implementation based on https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html.
+
+---
+- **[Try the EHI Export Demo App](https://ehi-app.herokuapp.com/)**
+---
+
+
+The server supports the following routes:
 
 **EHI Export**
 
