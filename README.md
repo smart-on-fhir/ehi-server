@@ -3,15 +3,19 @@ This is an EHI Export Server POC implementation based on https://build.fhir.org/
 
 **EHI Export**
 
-|        |                                   |                                   |
-|-------:|-----------------------------------|-----------------------------------|
-|`POST`  | `/fhir/Patient/:id/$ehi-export`   | kick-off EHI export               |
-|`GET`   | `/jobs/:id/customize`             | render job customization form     |
-|`POST`  | `/jobs/:id`                       | customize and start job           |
-|`GET`   | `/jobs/:id/status`                | get job status                    |
-|`DELETE`| `/jobs/:id/status`                | abort/delete job                  |
-|`GET`   | `/jobs/:id/download/:resourceType`| download resource file            |
-|`GET`   | `/jobs/:id/metadata`              | get job info ***(proprietary)***  |
+|        |                                                      |                                                                                       |
+|-------:|------------------------------------------------------|---------------------------------------------------------------------------------------|
+|`POST`  | `/fhir/Patient/:id/$ehi-export`                      | kick-off EHI export                                                                   |
+|`POST`  | `/auto-approve/fhir/Patient/:id/$ehi-export`         | kick-off EHI export that does not require admin approval                              |
+|`POST`  | `/no-form/fhir/Patient/:id/$ehi-export`              | kick-off EHI export that does not have a customization form                           |
+|`POST`  | `/no-form/auto-approve/fhir/Patient/:id/$ehi-export` | kick-off EHI export that does not require admin approval or have a customization form |
+|`POST`  | `/auto-approve/no-form/fhir/Patient/:id/$ehi-export` | kick-off EHI export that does not require admin approval or have a customization form |
+|`GET`   | `/jobs/:id/customize`                                | render job customization form                                                         |
+|`POST`  | `/jobs/:id`                                          | customize and start job                                                               |
+|`GET`   | `/jobs/:id/status`                                   | get job status                                                                        |
+|`DELETE`| `/jobs/:id/status`                                   | abort/delete job                                                                      |
+|`GET`   | `/jobs/:id/download/:file`                           | download resource file                                                                |
+|`GET`   | `/jobs/:id/download/attachments/:file`               | download attachment file                                                              |
 
 
 **SMART & FHIR**
@@ -24,6 +28,21 @@ This is an EHI Export Server POC implementation based on https://build.fhir.org/
 |`GET` |`/patient-login`                       | Renders the patient login dialog|
 |`GET` |`/fhir/.well-known/smart-configuration`| WellKnown SMART Configuration   |
 |`GET` |`/fhir/metadata`                       | FHIR CapabilityStatement        |
+
+
+**Export Administration API (proprietary)**
+
+|        |                              |                              |
+|-------:|------------------------------|------------------------------|
+|`POST`  |`/admin/login`                | login                        |
+|`GET`   |`/admin/logout`               | logout                       |
+|`GET`   |`/admin/jobs`                 | Get all jobs                 |
+|`GET`   |`/admin/jobs/:id`             | Get job by id                |
+|`POST`  |`/admin/jobs/:id/approve`     | Approve a pending export job |
+|`POST`  |`/admin/jobs/:id/reject`      | Reject a pending export job  |
+|`POST`  |`/admin/jobs/:id/add-files`   | Upload file attachments      |
+|`POST`  |`/admin/jobs/:id/remove-files`| Remove file attachments      |
+|`DELETE`|`/admin/jobs/:id`             | Delete job by id             |
 
 
 
@@ -53,13 +72,12 @@ This is an EHI Export Server POC implementation based on https://build.fhir.org/
 ----
 There are several things that we had to add in our implementation to improve usability. The EHI Export specification is in it's early proposal stage. We assume that some of these additions may
 be standardized later. They are listed here for clarity.
-- `GET /jobs/:id/metadata` - While the proposed API is good enough to make EHI exports, client
-   apps may want to show more info about the export job. For example, the administrator might want
-   to see the options chosen py the patient in the customization form in order to decide if some
-   files need to bedded before the export is approved. To enable this we include a `/jobs/:id/metadata` as well as a link to it in the manifest extensions.
 - To make the `kick-off` endpoint callable from web apps we have to use CORS. This will hide most
    response headers from clients, unless otherwise specified. For that reason we had to add
    `Access-Control-Expose-Headers: Link, Content-Location` to our response headers. For more info
    see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
-
+- There are custom kick-off endpoints (listed above) that allow an export to be started without
+  requiring an admin approval or a customization form. This was done to help developers who are
+  creating their own client apps and want to test them with this server.
+  
 
