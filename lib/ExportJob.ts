@@ -1,6 +1,7 @@
 import Path                    from "path"
 import {existsSync, statSync } from "fs"
-import { appendFile, copyFile, mkdir, readFile, rm, unlink, writeFile } from "fs/promises"
+import mime                    from "mime"
+import { appendFile, copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "fs/promises"
 import crypto                  from "crypto"
 import lockfile                from "proper-lockfile"
 import patients                from "../data/db"
@@ -315,7 +316,12 @@ export default class ExportJob
         this.completedAt = Date.now()
         this.manifest = manifest
         this.status = this.autoApprove ? "approved" : "retrieved"
-        await this.save()
+
+        if (config.addDefaultAttachments === "always" || (config.addDefaultAttachments === "auto" && this.autoApprove)) {
+            await this.addDefaultAttachments(baseUrl)
+        } else {
+            await this.save()
+        }
     }
 
     async save()
@@ -392,6 +398,29 @@ export default class ExportJob
         });
         this.manifest = await this.getAugmentedManifest()
         await unlink(src)
+        await release()
+        await this.save()
+    }
+
+    protected async addDefaultAttachments(baseUrl: string) {
+        const release = await lock(this.path)
+        const dst = Path.join(this.path, "attachments")
+        await mkdir(dst, { recursive: true })
+        const dir = Path.join(__dirname, "..", "default_attachments")
+        const files = await readdir(dir, { withFileTypes: true })
+        for (const file of files) {
+            const path = getPrefixedFilePath(dst, file.name)
+            const filename = Path.basename(path)
+            await copyFile(Path.join(dir, file.name), path);
+            const info = await stat(path)
+            this.attachments.push({
+                title: filename,
+                contentType: mime.getType(path) || undefined,
+                size: info.size,
+                url: `${baseUrl}/jobs/${this.id}/download/attachments/${filename}`
+            });
+        }
+        this.manifest = await this.getAugmentedManifest()
         await release()
         await this.save()
     }

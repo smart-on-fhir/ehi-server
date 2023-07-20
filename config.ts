@@ -49,6 +49,12 @@ export default {
 
     authDelay: env.NODE_ENV === "test" ? 0 : 1000,
 
+    // If the default attachments should be added to each job. Possible values:
+    // "always" - default attachments will be added to each job
+    // "auto" - only add them for jobs kicked off in auto-approve mode
+    // anything else - do NOT add default attachments
+    addDefaultAttachments: "auto", // always | never | auto
+
     users: [
         { username: "admin"  , password: "admin-password" },
         { username: "admin2", password: "admin2-password" },
