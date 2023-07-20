@@ -4,7 +4,7 @@ import config                        from "../../config"
 import { OAuthError }                from "../../lib/errors"
 import ExportJob                     from "../../lib/ExportJob"
 import { check }                     from "../../lib/ExportJobManager"
-import { cleanup, FIRST_PATIENT_ID } from "../integration/TestContext"
+import { cleanupJobs, FIRST_PATIENT_ID } from "../integration/TestContext"
 import {
     getPrefixedFilePath,
     humanName,
@@ -63,7 +63,7 @@ describe("lib", () => {
 
     describe("jobs", () => {
 
-        afterEach(cleanup);
+        afterEach(cleanupJobs);
 
         it ("destroy", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)

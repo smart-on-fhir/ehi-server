@@ -43,15 +43,29 @@ export const FIRST_PATIENT_ID = getFirstPatientId();
 
 before(async () => { await SERVER.start() });
 
-after(async () => { await SERVER.stop(); await cleanup(); });
+after(async () => {
+    await SERVER.stop()
+    await cleanupJobs()
+    await cleanupUploads()
+});
 
-export async function cleanup() {
+export async function cleanupJobs() {
     const base  = path.join(__dirname, "../../test-jobs")
     const items = await readdir(base, { withFileTypes: true });
     for (const entry of items) {
         if (entry.isDirectory()) {
             const dir = path.join(base, entry.name)
             await rm(dir, { force: true, recursive: true })
+        }
+    }
+}
+
+export async function cleanupUploads() {
+    const base  = path.join(__dirname, "../../uploads")
+    const items = await readdir(base, { withFileTypes: true });
+    for (const entry of items) {
+        if (entry.isFile() && entry.name !== ".gitkeep") {
+            await rm(path.join(base, entry.name), { force: true })
         }
     }
 }

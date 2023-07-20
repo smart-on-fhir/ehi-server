@@ -47,6 +47,7 @@ export default {
     // Use different location for test jobs
     jobsDir: Path.join(__dirname, env.NODE_ENV === "test" ? "test-jobs/" : "jobs/"),
 
+    // Unless we are testing, login and logout will be delayed by this many ms
     authDelay: env.NODE_ENV === "test" ? 0 : 1000,
 
     // If the default attachments should be added to each job. Possible values:

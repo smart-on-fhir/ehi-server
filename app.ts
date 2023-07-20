@@ -129,7 +129,7 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
 })
 
 if (process.env.NODE_ENV !== "test") {
-    start()
+    start() // periodically delete expired jobs
 }
 
 // istanbul ignore next - Only start is not imported imported

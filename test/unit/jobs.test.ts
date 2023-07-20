@@ -2,7 +2,7 @@ import Path                                  from "path"
 import { afterEach }                         from "mocha"
 import { expect }                            from "chai"
 import { chmod, readFile, rm, writeFile }    from "fs/promises"
-import { cleanup, FIRST_PATIENT_ID, SERVER } from "../integration/TestContext"
+import { cleanupJobs, FIRST_PATIENT_ID, SERVER } from "../integration/TestContext"
 import config                                from "../../config"
 import ExportJob                             from "../../lib/ExportJob"
 import { waitFor }                           from "../../lib"
@@ -12,7 +12,7 @@ import { waitFor }                           from "../../lib"
 
 describe("Jobs", () => {
 
-    afterEach(cleanup);
+    afterEach(cleanupJobs);
     
     it ("constructor requires patient id argument", () => {
         expect(() => new ExportJob()).to.throw();
