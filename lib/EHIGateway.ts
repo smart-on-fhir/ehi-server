@@ -89,7 +89,7 @@ export async function kickOff(req: Request, res: Response) {
     if (!req.url.includes("/no-form/")) {
         res.header("Link", `${baseUrl}/jobs/${job.id}/customize?_patient=${req.params.id}; rel="patient-interaction"`)
     } else {
-        job.kickOff(baseUrl)
+        job.kickOff(baseUrl, true)
     }
     res.header("Content-Location", `${baseUrl}/jobs/${job.id}/status`)
     res.header("Access-Control-Expose-Headers", "Content-Location, Link")

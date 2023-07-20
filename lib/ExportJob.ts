@@ -270,7 +270,7 @@ export default class ExportJob
         }
     }
 
-    public async kickOff(baseUrl: string)
+    public async kickOff(baseUrl: string, noForm = false)
     {
         this.status = "requested"
         await this.save()
@@ -309,7 +309,7 @@ export default class ExportJob
 
         // Try adding every resource from the transaction bundle
         for (const entry of patientBundle.entry!) {
-            await addOutputEntry(entry.resource!)
+            await addOutputEntry(entry.resource!, noForm && config.fullExportWithoutForm)
             await wait(config.jobThrottle)
         }
 

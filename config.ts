@@ -55,6 +55,11 @@ export default {
     // anything else - do NOT add default attachments
     addDefaultAttachments: "auto", // always | never | auto
 
+    // For jobs kicked off in "no-form" mode, if this is true the entire FHIR
+    // data will be exported. Otherwise, only the minimal subset will be exported
+    // (which is the same as submitting an empty form)
+    fullExportWithoutForm: true,
+
     users: [
         { username: "admin"  , password: "admin-password" },
         { username: "admin2", password: "admin2-password" },
