@@ -30,7 +30,7 @@ html(lang="en")
                     br
                 else 
                     select#_patient(name="_patient" style={ width: "100%"})
-                        each patient, index in patients
+                        each patient, index in patients.sort(()=> Math.random() - 0.5)
                             - const prefix = patient.name[0]?.prefix?.[0]
                             - const given  = patient.name[0]?.given?.[0]
                             - const family = patient.name[0]?.family
