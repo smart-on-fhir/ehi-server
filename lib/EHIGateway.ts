@@ -100,7 +100,7 @@ export async function renderForm(req: Request, res: Response) {
     
     const job = await ExportJob.byId(req.params.id)
 
-    // FIXME: This is totally fake and only used for demo purposes! If _patient
+    // This is totally fake and only used for demo purposes! If _patient
     // param is not provided show the patient picker to login. In reality we
     // don't need this because the job already knows who the patient is.
     if (!req.query._patient) {
@@ -108,9 +108,7 @@ export async function renderForm(req: Request, res: Response) {
         q.set("action", getRequestBaseURL(req) + req.url)
         q.set("_patient", job.patient.id)
 
-        // TODO: WHERE SHOULD THIS COME FROM???
-        // q.set("redirect", "http://127.0.0.1:3000/")
-        // q.set("redirect", "http://localhost:3000/")
+        // WHERE SHOULD THIS COME FROM???
         q.set("redirect", String(req.query.redirect || "") || "http://127.0.0.1:3000/")
 
         return res.redirect(`/patient-login?${q}`)

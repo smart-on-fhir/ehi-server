@@ -15,11 +15,13 @@ export default class AuthorizeHandler {
 
     protected baseUrl: string;
 
-    public static handle(req: Request, res: Response) {
+    public static handle(req: Request, res: Response)
+    {
         return new AuthorizeHandler(req, res).authorize();
     }
 
-    public constructor(req: Request, res: Response) {
+    public constructor(req: Request, res: Response)
+    {
         this.request  = req
         this.response = res
         this.baseUrl  = getRequestBaseURL(req)
@@ -32,8 +34,8 @@ export default class AuthorizeHandler {
      * @param to The pathname to redirect to
      * @param query Custom parameters (if any)
      */
-    public redirect(to: string, query: Record<string, any> = {}): void {
-
+    public redirect(to: string, query: Record<string, any> = {}): void
+    {
         const url = new URL(to, this.baseUrl)
 
         // Make sure we preserve all the authorize params by passing them
@@ -59,7 +61,8 @@ export default class AuthorizeHandler {
      * Creates and returns the signed JWT code that contains some authorization
      * details.
      */
-    public createAuthCode(patient?: string): string {
+    public createAuthCode(patient?: string): string
+    {
         return jwt.sign({
             context     : { need_patient_banner: true, patient },
             client_id   : this.request.query.client_id + "",

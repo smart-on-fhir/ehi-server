@@ -1,10 +1,8 @@
 import { Request, Response } from "express"
-import jwt                   from "jsonwebtoken"
-import config                from "../config"
-import {
-    getRequestBaseURL,
-    requireUrlencodedPost
-} from "."
+import jwt from "jsonwebtoken"
+import config from "../config"
+import { SMART } from "../index"
+import { getRequestBaseURL, requireUrlencodedPost } from "."
 import {
     InvalidClientError,
     InvalidRequestError,
