@@ -279,7 +279,7 @@ export async function login(req: Request, res: Response) {
         expires.setFullYear(new Date().getFullYear() + 1)
     }
 
-    res.cookie("sid", sid, { httpOnly: true, expires }).json({ username: user.username });
+    res.cookie("sid", sid, { httpOnly: true, expires, sameSite: "none" }).json({ username: user.username });
 }
 
 export async function logout(req: EHI.UserRequest, res: Response) {
