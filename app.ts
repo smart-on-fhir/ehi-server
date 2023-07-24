@@ -62,11 +62,13 @@ app.get("/patient-login", (req, res) => {
         list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
     })
     
+    // Turn some unique visitor information (e.g. IP) into a patient-index to
+    // promote to the front of the list, reducing patient-collisions across multiple users
     if (list.length > 0) { 
         const seed = req.ip;
         const hash = Crypto.createHash('sha256'); 
         hash.update(seed)
-        const uniqueValue = parseInt(hash.digest('hex'), 10);
+        const uniqueValue = parseInt(hash.digest('hex'), 16);
         const specificSort = uniqueValue % patients.size;
         [list[0], list[specificSort]] = [list[specificSort], list[0]]
     }
