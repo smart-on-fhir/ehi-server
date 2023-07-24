@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
 import cors                    from "cors"
+import Crypto                  from "crypto"
 import { AddressInfo }         from "net"
 import multer                  from "multer"
 import cookieParser            from "cookie-parser"
@@ -60,6 +61,16 @@ app.get("/patient-login", (req, res) => {
     patients.forEach((value, key) => {
         list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
     })
+    
+    if (list.length > 0) { 
+        const seed = req.ip;
+        const hash = Crypto.createHash('sha256'); 
+        hash.update(seed)
+        const uniqueValue = parseInt(hash.digest('hex'), 10);
+        const specificSort = uniqueValue % patients.size;
+        [list[0], list[specificSort]] = [list[specificSort], list[0]]
+    }
+    
     res.render("patient-login", { patients: list, query: req.query })
 })
 
