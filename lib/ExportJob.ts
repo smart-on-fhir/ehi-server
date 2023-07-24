@@ -481,17 +481,11 @@ export default class ExportJob
     }
 
     public async approve() {
-        if (this.status !== "retrieved") {
-            throw new HttpError(`Only retrieved jobs can be approved`).status(400)
-        }
         this.status = "approved"
         return this.save()
     }
 
     public async reject() {
-        if (this.status !== "retrieved") {
-            throw new HttpError(`Only retrieved jobs can be rejected`).status(400)
-        }
         this.status = "rejected"
         return this.destroy()
     }
