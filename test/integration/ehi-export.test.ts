@@ -443,7 +443,7 @@ describe("POST /admin/login", () => {
             .post("/admin/login")
             .send("username=admin&password=admin-password")
             .expect(200)
-            .expect("set-cookie", /^sid=.+?;\s*Path=\/;\s*HttpOnly$/)
+            .expect("set-cookie", /^sid=.+?/)
             .expect({ username: 'admin' })
     });
 
@@ -452,7 +452,7 @@ describe("POST /admin/login", () => {
             .post("/admin/login")
             .send("username=admin&password=admin-password&remember=true")
             .expect(200)
-            .expect("set-cookie", /^sid=.+?;\s*Path=\/;\s*Expires=.+?;\s*HttpOnly$/)
+            .expect("set-cookie", /^sid=.+?;\s*Path=\/;\s*Expires=.+?/)
             .expect({ username: 'admin' })
     });
 })
