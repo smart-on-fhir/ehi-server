@@ -69,8 +69,8 @@ app.get("/patient-login", (req, res) => {
         const hash = Crypto.createHash('sha256'); 
         hash.update(seed)
         const hexValue = hash.digest('hex')
-        // Use last ten digits only to avoid generating too-large numbers.
-        // We lose trailing-digit precision with scientific-notation size numbers 
+        // Use last ten digits only to avoid generating really large numbers.
+        // We might lose trailing-digit precision when dealing with massive floats 
         const uniqueValue = parseInt(hexValue.slice(hexValue.length - 10, hexValue.length), 16);
         const specificSort = uniqueValue % patients.size;
         [list[0], list[specificSort]] = [list[specificSort], list[0]]
