@@ -72,8 +72,8 @@ app.get("/patient-login", (req, res) => {
         // Use last ten digits only to avoid generating really large numbers.
         // We might lose trailing-digit precision when dealing with massive floats 
         const uniqueValue = parseInt(hexValue.slice(hexValue.length - 10, hexValue.length), 16);
-        const specificSort = uniqueValue % patients.size;
-        [list[0], list[specificSort]] = [list[specificSort], list[0]]
+        const indexToPromote = uniqueValue % patients.size;
+        [list[0], list[indexToPromote]] = [list[indexToPromote], list[0]]
     }
     
     res.render("patient-login", { patients: list, query: req.query })
