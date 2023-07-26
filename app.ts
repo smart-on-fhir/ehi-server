@@ -8,7 +8,6 @@ import config                  from "./config"
 import AuthorizeHandler        from "./lib/authorize"
 import TokenHandler            from "./lib/token"
 import getMetadata             from "./lib/metadata"
-import patients                from "./data/db"
 import getWellKnownSmartConfig from "./lib/smart-configuration"
 import * as Gateway            from "./lib/EHIGateway"
 import { HttpError }           from "./lib/errors"
@@ -18,7 +17,8 @@ import {
     login,
     logout,
     requireAdminAuth,
-    validateToken
+    validateToken,
+    patientLogin
 } from "./lib"
 
 
@@ -56,28 +56,7 @@ app.post("/auth/token", wrap(TokenHandler.handle))
 app.get("/authorize-app", (req, res) => res.render("authorize-app", { query: req.query }))
 
 // patient login dialog
-app.get("/patient-login", (req, res) => {
-    const list: any[] = [];
-    patients.forEach((value, key) => {
-        list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
-    })
-    
-    // Turn some unique visitor information (e.g. IP) into a patient-index to
-    // promote to the front of the list, reducing patient-collisions across multiple users
-    if (list.length > 0) { 
-        const seed = req.ip;
-        const hash = Crypto.createHash('sha256'); 
-        hash.update(seed)
-        const hexValue = hash.digest('hex')
-        // Use last ten digits only to avoid generating really large numbers.
-        // We might lose trailing-digit precision when dealing with massive floats 
-        const uniqueValue = parseInt(hexValue.slice(hexValue.length - 10, hexValue.length), 16);
-        const indexToPromote = uniqueValue % patients.size;
-        [list[0], list[indexToPromote]] = [list[indexToPromote], list[0]]
-    }
-    
-    res.render("patient-login", { patients: list, query: req.query })
-})
+app.get("/patient-login", patientLogin)
 
 // WellKnown SMART Configuration
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
