@@ -4,7 +4,6 @@ import Path                                                 from "path"
 import { NextFunction, Request, Response, RequestHandler }  from "express"
 import { readdirSync, statSync }                            from "fs"
 import { HttpError, InvalidRequestError, OAuthError }       from "./errors"
-import patients                                             from "../data/db"
 import config                                               from "../config"
 import { EHI }                                              from "../index"
 
@@ -289,27 +288,35 @@ export async function logout(req: EHI.UserRequest, res: Response) {
     return res.clearCookie("sid").end("Logout successful");
 }
 
-export function patientLogin(req: EHI.UserRequest, res: Response) { 
-    const list: any[] = [];
-    patients.forEach((value, key) => {
-        list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
-    })
-    
-    // Turn some unique visitor information (e.g. IP) into a patient-index to
-    // promote to the front of the list, reducing patient-collisions across multiple users
-    if (list.length > 0) { 
-        const seed = req.ip;
-        const hash = Crypto.createHash('sha256'); 
-        hash.update(seed)
-        const hexValue = hash.digest('hex')
-        // Use last ten digits only to avoid generating really large numbers.
-        // We might lose trailing-digit precision when dealing with massive floats 
-        const uniqueValue = parseInt(hexValue.slice(hexValue.length - 10, hexValue.length), 16);
-        const indexToPromote = uniqueValue % patients.size;
-        [list[0], list[indexToPromote]] = [list[indexToPromote], list[0]]
+type Patients = Map<string, {
+    patient: fhir4.Patient;
+    file: string;
+}>
+
+// Given a Map of patients, return a route handler for patient login 
+export function patientLoginHandlerCreator(patients: Patients) {
+    return (req: EHI.UserRequest, res: Response)  => { 
+        const list: any[] = [];
+        patients.forEach((value, key) => {
+            list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
+        })
+        
+        // Turn some unique visitor information (e.g. IP) into a patient-index to
+        // promote to the front of the list, reducing patient-collisions across multiple users
+        if (list.length > 0) { 
+            const seed = req.ip;
+            const hash = Crypto.createHash('sha256'); 
+            hash.update(seed)
+            const hexValue = hash.digest('hex')
+            // Use last ten digits only to avoid generating really large numbers.
+            // We might lose trailing-digit precision when dealing with massive floats 
+            const uniqueValue = parseInt(hexValue.slice(hexValue.length - 10, hexValue.length), 16);
+            const indexToPromote = uniqueValue % patients.size;
+            [list[0], list[indexToPromote]] = [list[indexToPromote], list[0]]
+        }
+        
+        res.render("patient-login", { patients: list, query: req.query })
     }
-    
-    res.render("patient-login", { patients: list, query: req.query })
 }
 
 export async function waitFor(condition: () => any): Promise<void> {

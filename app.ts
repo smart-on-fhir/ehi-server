@@ -12,13 +12,14 @@ import getWellKnownSmartConfig from "./lib/smart-configuration"
 import * as Gateway            from "./lib/EHIGateway"
 import { HttpError }           from "./lib/errors"
 import { start }               from "./lib/ExportJobManager"
+import patients                from "./data/db"
 import {
     asyncRouteWrap as wrap,
     login,
     logout,
     requireAdminAuth,
     validateToken,
-    patientLogin
+    patientLoginHandlerCreator
 } from "./lib"
 
 
@@ -56,7 +57,7 @@ app.post("/auth/token", wrap(TokenHandler.handle))
 app.get("/authorize-app", (req, res) => res.render("authorize-app", { query: req.query }))
 
 // patient login dialog
-app.get("/patient-login", patientLogin)
+app.get("/patient-login", patientLoginHandlerCreator(patients))
 
 // WellKnown SMART Configuration
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
