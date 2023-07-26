@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
 import cors                    from "cors"
+import Crypto                  from "crypto"
 import { AddressInfo }         from "net"
 import multer                  from "multer"
 import cookieParser            from "cookie-parser"
@@ -7,17 +8,18 @@ import config                  from "./config"
 import AuthorizeHandler        from "./lib/authorize"
 import TokenHandler            from "./lib/token"
 import getMetadata             from "./lib/metadata"
-import patients                from "./data/db"
 import getWellKnownSmartConfig from "./lib/smart-configuration"
 import * as Gateway            from "./lib/EHIGateway"
 import { HttpError }           from "./lib/errors"
 import { start }               from "./lib/ExportJobManager"
+import patients                from "./data/db"
 import {
     asyncRouteWrap as wrap,
     login,
     logout,
     requireAdminAuth,
-    validateToken
+    validateToken,
+    patientLoginHandlerCreator
 } from "./lib"
 
 
@@ -55,13 +57,7 @@ app.post("/auth/token", wrap(TokenHandler.handle))
 app.get("/authorize-app", (req, res) => res.render("authorize-app", { query: req.query }))
 
 // patient login dialog
-app.get("/patient-login", (req, res) => {
-    const list: any[] = [];
-    patients.forEach((value, key) => {
-        list.push({ id: key, name: value.patient.name, birthDate: value.patient.birthDate })
-    })
-    res.render("patient-login", { patients: list, query: req.query })
-})
+app.get("/patient-login", patientLoginHandlerCreator(patients))
 
 // WellKnown SMART Configuration
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
