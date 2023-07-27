@@ -1,10 +1,11 @@
-import { expect } from "chai"
-import request    from "supertest"
-import jwt        from "jsonwebtoken"
-import EHIClient  from "./EHIClient"
-import { FIRST_PATIENT_ID, SERVER } from "./TestContext"
-import config     from "../../config"
-import patients   from "../../data/db"
+import { expect }                          from "chai"
+import request                             from "supertest"
+import jwt                                 from "jsonwebtoken"
+import EHIClient                           from "./EHIClient"
+import { FIRST_PATIENT_ID, login, SERVER } from "./TestContext"
+import config                              from "../../config"
+import patients                            from "../../data/db"
+import { SESSIONS }                        from "../../lib"
 
 function getPatientIdAt(index:number) {
     let i = 0
@@ -300,7 +301,7 @@ describe ("download", () => {
         
         // Upload 2 files
         // ---------------------------------------------------------------------
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)
             .set('Cookie', ['sid=TEST_SID'])
@@ -463,14 +464,14 @@ describe("GET /admin/logout", () => {
     });
 
     it("Patient can logout", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .get("/admin/logout")
             .set("Cookie", ["sid=TEST_SID"])
             .send()
             .expect(200)
             .expect("Logout successful");
-        expect(config.users[0].sid).to.be.undefined
+        expect(SESSIONS.find(s => s.sid === "TEST_SID")).to.be.undefined
     });
 })
 
@@ -484,7 +485,7 @@ describe("GET /admin/jobs", () => {
     });
 
     it ("Works", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl).get("/admin/jobs").set('Cookie', ['sid=TEST_SID']).expect(200)
     })
 })
@@ -492,7 +493,7 @@ describe("GET /admin/jobs", () => {
 describe("GET /admin/jobs/:id", () => {
 
     async function fetchJob(id: string) {
-        config.users[0].sid = "TEST_SID";
+        login()
         return fetch(`${SERVER.baseUrl}/admin/jobs/${id}`, {
             headers: { cookie: "sid=TEST_SID" }
         })
@@ -523,7 +524,7 @@ describe("GET /admin/jobs/:id", () => {
 describe("POST /admin/jobs/:id/approve", () => {
 
     it("Rejects for missing jobs", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/bad-id/approve")
             .set("Cookie", ["sid=TEST_SID"])
@@ -537,7 +538,7 @@ describe("POST /admin/jobs/:id/approve", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
 
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/"+jobId+"/approve")
             .set("Cookie", ["sid=TEST_SID"])
@@ -549,7 +550,7 @@ describe("POST /admin/jobs/:id/approve", () => {
 describe("POST /admin/jobs/:id/reject", () => {
     
     it("Rejects for missing jobs", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/bad-id/reject")
             .set("Cookie", ["sid=TEST_SID"])
@@ -563,7 +564,7 @@ describe("POST /admin/jobs/:id/reject", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
 
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/"+jobId+"/reject")
             .set("Cookie", ["sid=TEST_SID"])
@@ -574,7 +575,7 @@ describe("POST /admin/jobs/:id/reject", () => {
 
 describe("POST /admin/jobs/:id/add-files", () => {
     it("Rejects for missing jobs", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/123/add-files")
             .set('Cookie', ['sid=TEST_SID'])
@@ -599,7 +600,7 @@ describe("POST /admin/jobs/:id/add-files", () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)
             .set('Cookie', ['sid=TEST_SID'])
@@ -609,7 +610,7 @@ describe("POST /admin/jobs/:id/add-files", () => {
     it ("Rejects if the job is not in retrieved state", async () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)
             .set('Cookie', ['sid=TEST_SID'])
@@ -623,7 +624,7 @@ describe("POST /admin/jobs/:id/add-files", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
         
-        config.users[0].sid = "TEST_SID";
+        login()
 
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)
@@ -652,7 +653,7 @@ describe("POST /admin/jobs/:id/add-files", () => {
 describe("POST /admin/jobs/:id/remove-files", () => {
     
     it("Rejects for missing jobs", async () => {
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post("/admin/jobs/123/remove-files")
             .set('Cookie', ['sid=TEST_SID'])
@@ -677,7 +678,7 @@ describe("POST /admin/jobs/:id/remove-files", () => {
         const { jobId } = await client.kickOff(PATIENT_ID)
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
-        config.users[0].sid = "TEST_SID";
+        login()
 
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/remove-files`)
@@ -693,7 +694,7 @@ describe("POST /admin/jobs/:id/remove-files", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
 
-        config.users[0].sid = "TEST_SID";
+        login()
 
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/remove-files`)
@@ -708,7 +709,7 @@ describe("POST /admin/jobs/:id/remove-files", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
 
-        config.users[0].sid = "TEST_SID";
+        login()
 
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/remove-files`)
@@ -719,7 +720,7 @@ describe("POST /admin/jobs/:id/remove-files", () => {
     it ("Rejects if the job is not in retrieved state", async () => {
         const client = new EHIClient()
         const { jobId } = await client.kickOff(PATIENT_ID)
-        config.users[0].sid = "TEST_SID";
+        login()
         await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/remove-files`)
             .set('Cookie', ['sid=TEST_SID'])
@@ -733,7 +734,7 @@ describe("POST /admin/jobs/:id/remove-files", () => {
         await client.customize(jobId)
         await client.waitForStatus(jobId, "retrieved")
 
-        config.users[0].sid = "TEST_SID";
+        login()
 
         let res = await request(SERVER.baseUrl)
             .post(`/admin/jobs/${jobId}/add-files`)

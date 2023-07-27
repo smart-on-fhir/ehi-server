@@ -61,8 +61,11 @@ export default {
     // (which is the same as submitting an empty form)
     fullExportWithoutForm: true,
 
+    // Destroy sessions after this many minutes of inactivity
+    sessionLifetimeMinutes: 10,
+
     users: [
-        { username: "admin"  , password: "admin-password" },
+        { username: "admin" , password: "admin-password"  },
         { username: "admin2", password: "admin2-password" },
     ] as EHI.User[]
 }

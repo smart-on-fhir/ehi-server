@@ -280,7 +280,6 @@ declare namespace EHI {
     interface User {
         username: string
         password: string
-        sid?: string
     }
 
 }

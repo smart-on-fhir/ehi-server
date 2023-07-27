@@ -231,12 +231,17 @@ export function humanName(human: FHIRPerson): string {
     return out;
 }
 
+export let SESSIONS: { sid: string, username: string, expires: number }[] = [];
+
 export function requireAdminAuth(req: EHI.UserRequest, res: Response, next: NextFunction) {
-    const sid = req.cookies?.sid;
-    (req as EHI.UserRequest).user = sid ? config.users.find(u => u.sid === sid) : undefined;
-    if (!req.user) {
+    const now = Date.now()
+    SESSIONS = SESSIONS.filter(s => s.expires > now);
+    const session = SESSIONS.find(s => s.sid === req.cookies?.sid);
+    if (!session) {
         return res.status(401).type("text").end("Authorization required");
     }
+    session.expires = now + config.sessionLifetimeMinutes * 60000; // prolong if active
+    (req as EHI.UserRequest).user = config.users.find(u => u.username === session.username);
     next();
 }
 
@@ -245,7 +250,7 @@ export async function login(req: Request, res: Response) {
     // 1 second artificial delay to protect from automated brute-force attacks
     await wait(config.authDelay);
         
-    const { username, password, remember } = req.body;
+    const { username, password } = req.body;
 
     // No such username (Do NOT specify what is wrong in the error message!)
     if (!username || !password) {
@@ -267,24 +272,18 @@ export async function login(req: Request, res: Response) {
     // Generate SID and update the user in DB
     const sid = Crypto.randomBytes(32).toString("hex");
 
-    // Update user's lastLogin and sid properties
-    user.sid = sid
+    const expires = new Date()
+    expires.setMinutes(expires.getMinutes() + config.sessionLifetimeMinutes);
 
-    // Use session cookies by default
-    let expires: Date | undefined = undefined
-
-    // If "remember" is set use cookies that expire in one year
-    if (remember) {
-        expires = new Date()
-        expires.setFullYear(new Date().getFullYear() + 1)
-    }
+    // Register this sid
+    SESSIONS.push({ sid, username: user.username, expires: expires.getTime() })
 
     res.cookie("sid", sid, { httpOnly: true, expires, sameSite: "none", secure: true }).json({ username: user.username });
 }
 
 export async function logout(req: EHI.UserRequest, res: Response) {
     await wait(config.authDelay);
-    delete req.user!.sid;
+    SESSIONS = SESSIONS.filter(s => s.sid !== req.cookies.sid);
     return res.clearCookie("sid").end("Logout successful");
 }
 

@@ -1,8 +1,7 @@
-import { expect }            from "chai"
-import { wait }              from "../../lib"
-import { authorize, SERVER } from "./TestContext"
-import { EHI }               from "../../index"
-import config                from "../../config"
+import { expect }                   from "chai"
+import { wait }                     from "../../lib"
+import { authorize, login, SERVER } from "./TestContext"
+import { EHI }                      from "../../index"
 
 
 export default class EHIClient
@@ -78,7 +77,7 @@ export default class EHIClient
     }
 
     public async approve(jobId: string) {
-        config.users[0].sid = "TEST_SID";
+        login()
         return fetch(`${SERVER.baseUrl}/admin/jobs/${jobId}/approve`, {
             method: "POST",
             headers: {
@@ -88,7 +87,7 @@ export default class EHIClient
     }
 
     public async waitForStatus(jobId: string, status: string) {
-        config.users[0].sid = "TEST_SID";
+        login()
         const options = { headers: { cookie: "sid=TEST_SID" }}
 
         const res = await fetch(`${SERVER.baseUrl}/admin/jobs/${jobId}`, options)

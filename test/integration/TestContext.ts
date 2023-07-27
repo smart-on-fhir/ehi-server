@@ -5,6 +5,8 @@ import { expect }              from "chai"
 import { AddressInfo, Server } from "net"
 import server                  from "../../app"
 import patients                from "../../data/db"
+import { SESSIONS }            from "../../lib"
+import config                  from "../../config"
 
 
 let testServer: Server | null
@@ -134,4 +136,12 @@ export async function authorize({
     const access_token = await tokenResponseJson.access_token
     
     return access_token
+}
+
+export function login() {
+    SESSIONS.push({
+        sid: "TEST_SID",
+        username: config.users[0].username,
+        expires: Date.now() + 60000
+    })
 }
