@@ -99,6 +99,11 @@ export async function kickOff(req: Request, res: Response) {
 export async function renderForm(req: Request, res: Response) {
     
     const job = await ExportJob.byId(req.params.id)
+    
+    let patient = req.query._patient
+    if (Array.isArray(patient)) {
+        patient = patient.pop()
+    }
 
     // This is totally fake and only used for demo purposes! If _patient
     // param is not provided show the patient picker to login. In reality we
@@ -116,7 +121,7 @@ export async function renderForm(req: Request, res: Response) {
 
     res.render("form", {
         jobId   : req.params.id,
-        patient : req.query._patient,
+        patient,
         redirect: req.query.redirect,
         token   : req.query.token,
         job
