@@ -27,12 +27,35 @@ export function asyncRouteWrap(fn: RequestHandler) {
     ).catch(next);
 }
 
-export function wait(ms: number) {
+/**
+ * Wait for the given number of milliseconds before resolving
+ * @param [ms=0] Number of milliseconds to wait. Defaults to 0
+ */
+export function wait(ms = 0) {
     return new Promise(resolve => {
         setTimeout(resolve, ms);
     });
 }
 
+/**
+ * Wait until the conditionCheck function return value evaluates to true.
+ * @param conditionCheck A function with no arguments to check if the desired
+ * conditions are currently met. The return value will be evaluated to boolean.
+ * @param [frequency] How often should we check? Defaults to 100ms.
+ * @returns A promise that will be resolved once the conditionCheck function
+ * returns `true` or a truthy value
+ */
+export async function waitFor(conditionCheck: () => any, frequency = 100): Promise<void> {
+    if (!conditionCheck()) {
+        await wait(frequency)
+        await waitFor(conditionCheck)
+    }
+}
+
+/**
+ * Escapes an HTML string by replacing special characters with the corresponding
+ * html entities
+ */
 export function htmlEncode(html: string): string {
     return String(html)
         .trim()
@@ -318,9 +341,4 @@ export function patientLoginHandlerCreator(patients: Patients) {
     }
 }
 
-export async function waitFor(condition: () => any): Promise<void> {
-    if (!condition()) {
-        await wait(100)
-        await waitFor(condition)
-    }
-}
+
