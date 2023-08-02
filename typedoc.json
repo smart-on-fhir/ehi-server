@@ -1,5 +1,8 @@
 {
-    "entryPoints": ["./lib", "./index.d.ts"],
+    "entryPoints": [
+        "./lib/index.ts",
+        "./index.d.ts"
+    ],
     "entryPointStrategy": "expand",
     "out": "docs",
     "compilerOptions": {

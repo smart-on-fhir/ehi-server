@@ -2,7 +2,7 @@ import jwt                                  from "jsonwebtoken"
 import { Request, Response }                from "express"
 import config                               from "../config"
 import { InvalidClientError, InvalidRequestError, InvalidScopeError } from "./errors"
-import { getRequestBaseURL, validateParam } from "."
+import { getRequestBaseURL, validateParam } from "./utils"
 
 
 export default class AuthorizeHandler {

@@ -1,11 +1,11 @@
-import Path                                  from "path"
-import { afterEach }                         from "mocha"
-import { expect }                            from "chai"
-import { chmod, readFile, rm, writeFile }    from "fs/promises"
+import Path                                      from "path"
+import { afterEach }                             from "mocha"
+import { expect }                                from "chai"
+import { chmod, readFile, rm, writeFile }        from "fs/promises"
 import { cleanupJobs, FIRST_PATIENT_ID, SERVER } from "../integration/TestContext"
-import config                                from "../../config"
-import ExportJob                             from "../../lib/ExportJob"
-import { waitFor }                           from "../../lib"
+import config                                    from "../../config"
+import { ExportJob }                             from "../../lib/ExportJob"
+import { waitFor }                               from "../../lib/utils"
 
 
 

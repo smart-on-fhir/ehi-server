@@ -1,17 +1,17 @@
 import express, { NextFunction, Request, Response, urlencoded, json } from "express"
-import cors                    from "cors"
-import { AddressInfo }         from "net"
-import multer                  from "multer"
-import cookieParser            from "cookie-parser"
-import config                  from "./config"
-import AuthorizeHandler        from "./lib/authorize"
-import TokenHandler            from "./lib/token"
-import getMetadata             from "./lib/metadata"
-import getWellKnownSmartConfig from "./lib/smart-configuration"
-import * as Gateway            from "./lib/EHIGateway"
-import { HttpError }           from "./lib/errors"
-import { start }               from "./lib/ExportJobManager"
-import patients                from "./data/db"
+import cors                          from "cors"
+import { AddressInfo }               from "net"
+import multer                        from "multer"
+import cookieParser                  from "cookie-parser"
+import config                        from "./config"
+import AuthorizeHandler              from "./lib/authorize"
+import { TokenHandler }              from "./lib/token"
+import { renderCapabilityStatement } from "./lib/metadata"
+import { getWellKnownSmartConfig }   from "./lib/smart-configuration"
+import * as Gateway                  from "./lib/EHIGateway"
+import { HttpError }                 from "./lib/errors"
+import { start }                     from "./lib/ExportJobManager"
+import patients                      from "./data/db"
 import {
     asyncRouteWrap as wrap,
     login,
@@ -19,7 +19,7 @@ import {
     requireAdminAuth,
     validateToken,
     patientLoginHandlerCreator
-} from "./lib"
+} from "./lib/utils"
 
 
 const app = express()
@@ -62,7 +62,7 @@ app.get("/patient-login", patientLoginHandlerCreator(patients))
 app.get("/fhir/.well-known/smart-configuration", getWellKnownSmartConfig)
 
 // FHIR CapabilityStatement
-app.get("/fhir/metadata", wrap(getMetadata))
+app.get("/fhir/metadata", wrap(renderCapabilityStatement))
 
 // -----------------------------------------------------------------------------
 //                                 EHI Export

@@ -1,11 +1,11 @@
 import { Request, Response } from "express"
-import { getRequestBaseURL } from "."
+import { getRequestBaseURL } from "./utils"
 import pkg                   from "../package.json"
 
 
 const SERVER_START_TIME = new Date().toISOString();
 
-const SUPPORTED_FORMATS = [
+export const SUPPORTED_FORMATS = [
     "application/fhir+json",
     "application/json+fhir",
     "application/json",
@@ -13,7 +13,7 @@ const SUPPORTED_FORMATS = [
     "json"
 ];
 
-const SUPPORTED_ACCEPT_MIME_TYPES = [
+export const SUPPORTED_MIME_TYPES = [
     "application/fhir+json",
     "application/json+fhir",
     "application/json",
@@ -23,7 +23,7 @@ const SUPPORTED_ACCEPT_MIME_TYPES = [
     "*/*"
 ];
 
-function getCapabilityStatement(req: Request)
+export function getCapabilityStatement(req: Request)
 {
     const baseUrl = getRequestBaseURL(req)
 
@@ -79,7 +79,7 @@ function getCapabilityStatement(req: Request)
     }
 }
 
-function getResources() {
+export function getResources() {
     return [
         {
             "type": "Patient",
@@ -126,7 +126,7 @@ function getResources() {
     ]
 }
 
-function getOperations() {
+export function getOperations() {
     return [
         {
             "name": "get-resource-counts",
@@ -145,10 +145,13 @@ function getOperations() {
     ];
 }
 
-
-
-
-export default function(req: Request, res: Response) {
+/**
+ * 
+ * @route ```http
+ * GET /fhir/metadata
+ * ``` 
+ */
+export function renderCapabilityStatement(req: Request, res: Response) {
 
     const _format = String(req.query._format || "");
 
@@ -160,7 +163,7 @@ export default function(req: Request, res: Response) {
     }
 
     const accept = String(req.headers.accept || "*/*").toLowerCase().split(/\s*[;,]\s*/).shift();
-    if (!SUPPORTED_ACCEPT_MIME_TYPES.some(f => f === accept)) {
+    if (!SUPPORTED_MIME_TYPES.some(f => f === accept)) {
         return res.status(400).send(`Unsupported value "${accept}" in accept header`);
     }
 

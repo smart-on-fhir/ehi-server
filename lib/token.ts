@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import jwt from "jsonwebtoken"
 import config from "../config"
 import { SMART } from "../index"
-import { getRequestBaseURL, requireUrlencodedPost } from "."
+import { getRequestBaseURL, requireUrlencodedPost } from "./utils"
 import {
     InvalidClientError,
     InvalidRequestError,
@@ -11,7 +11,7 @@ import {
 } from "./errors"
 
 
-export default class TokenHandler {
+export class TokenHandler {
 
     protected request: Request;
 

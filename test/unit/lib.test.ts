@@ -1,15 +1,14 @@
-import { expect }                    from "chai"
-import { basename, join }            from "path"
-import config                        from "../../config"
-import { OAuthError }                from "../../lib/errors"
-import ExportJob                     from "../../lib/ExportJob"
-import { check }                     from "../../lib/ExportJobManager"
+import { expect }                        from "chai"
+import { basename, join }                from "path"
+import config                            from "../../config"
+import { OAuthError }                    from "../../lib/errors"
+import { ExportJob }                     from "../../lib/ExportJob"
 import { cleanupJobs, FIRST_PATIENT_ID } from "../integration/TestContext"
 import {
     getPrefixedFilePath,
     humanName,
     validateParam
-} from "../../lib"
+} from "../../lib/utils"
 
 describe("lib", () => {
     describe("validateParam", () => {

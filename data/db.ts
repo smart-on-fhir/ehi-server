@@ -1,6 +1,6 @@
 import { readFileSync } from "fs"
 import { basename } from "path"
-import { filterFiles } from "../lib"
+import { filterFiles } from "../lib/utils"
 
 const patients = new Map<string, { patient: fhir4.Patient; file: string }>()
 

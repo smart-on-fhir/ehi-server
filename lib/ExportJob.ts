@@ -8,7 +8,7 @@ import patients                from "../data/db"
 import config                  from "../config"
 import { HttpError }           from "./errors"
 import { EHI }                 from "../index"
-import { getPath, getPrefixedFilePath, humanName, wait } from "."
+import { getPath, getPrefixedFilePath, humanName, wait } from "./utils"
 
 
 
@@ -26,7 +26,7 @@ async function lock(path: string): Promise<() => Promise<void>> {
 }
 
 
-export default class ExportJob
+export class ExportJob
 {
     readonly id: string;
 

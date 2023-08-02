@@ -1,8 +1,12 @@
 import { Request, Response } from "express"
-import { getRequestBaseURL } from "."
+import { getRequestBaseURL } from "./utils"
 
-
-export default function getWellKnownSmartConfig(req: Request, res: Response) {
+/**
+ * @route ```http
+ * GET /fhir/.well-known/smart-configuration
+ * ```
+ */
+export function getWellKnownSmartConfig(req: Request, res: Response) {
     
     const baseUrl = getRequestBaseURL(req);
     

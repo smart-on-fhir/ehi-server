@@ -5,7 +5,7 @@ import EHIClient                           from "./EHIClient"
 import { FIRST_PATIENT_ID, login, SERVER } from "./TestContext"
 import config                              from "../../config"
 import patients                            from "../../data/db"
-import { SESSIONS }                        from "../../lib"
+import { SESSIONS }                        from "../../lib/utils"
 
 function getPatientIdAt(index:number) {
     let i = 0

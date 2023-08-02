@@ -1,5 +1,5 @@
 import { expect }                   from "chai"
-import { wait }                     from "../../lib"
+import { wait }                     from "../../lib/utils"
 import { authorize, login, SERVER } from "./TestContext"
 import { EHI }                      from "../../index"
 

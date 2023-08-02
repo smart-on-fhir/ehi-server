@@ -5,7 +5,7 @@ import { expect }              from "chai"
 import { AddressInfo, Server } from "net"
 import server                  from "../../app"
 import patients                from "../../data/db"
-import { SESSIONS }            from "../../lib"
+import { SESSIONS }            from "../../lib/utils"
 import config                  from "../../config"
 
 

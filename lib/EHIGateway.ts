@@ -3,11 +3,16 @@ import { statSync }                                  from "fs"
 import { Request, Response }                         from "express"
 import { readdir }                                   from "fs/promises"
 import config                                        from "../config"
-import ExportJob                                     from "./ExportJob"
+import { ExportJob }                                 from "./ExportJob"
 import { HttpError }                                 from "./errors"
-import { createOperationOutcome, getRequestBaseURL } from "."
+import { createOperationOutcome, getRequestBaseURL } from "./utils"
 
 
+/**
+ * @route ```http
+ * POST /jobs/:id
+ * ```
+ */
 export async function customizeAndStart(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     await job.customize(req.body.parameters, req.body.authorizations)
@@ -15,6 +20,11 @@ export async function customizeAndStart(req: Request, res: Response) {
     res.json(job)
 }
 
+/**
+ * @route ```http
+ * GET /jobs/:id/download/:file
+ * ```
+ */
 export async function downloadFile(req: Request, res: Response) {
     const dir = Path.join(config.jobsDir, req.params.id)
 
@@ -37,6 +47,11 @@ export async function downloadFile(req: Request, res: Response) {
     })
 }
 
+/**
+ * @route ```http
+ * GET /jobs/:id/download/attachments/:file
+ * ```
+ */
 export async function downloadAttachment(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     const filePath = Path.join(job.path, "attachments", req.params.file)
@@ -46,12 +61,22 @@ export async function downloadAttachment(req: Request, res: Response) {
     res.sendFile(filePath)
 }
 
+/**
+ * @route ```http
+ * DELETE /jobs/:id/status
+ * ```
+ */
 export async function abort(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     await job.destroy()
     res.status(202).json(createOperationOutcome("Export deleted", { severity: "information" }))
 }
 
+/**
+ * @route ```http
+ * GET /jobs/:id/status
+ * ```
+ */
 export async function checkStatus(req: Request, res: Response) {
     try {
         var job = await ExportJob.byId(req.params.id)
@@ -78,6 +103,15 @@ export async function checkStatus(req: Request, res: Response) {
     res.status(202).end()
 }
 
+/**
+ * @route ```http
+ * POST /fhir/Patient/:id/$ehi-export
+ * POST /auto-approve/fhir/Patient/:id/$ehi-export
+ * POST /no-form/fhir/Patient/:id/$ehi-export
+ * POST /no-form/auto-approve/fhir/Patient/:id/$ehi-export
+ * POST /auto-approve/no-form/fhir/Patient/:id/$ehi-export
+ * ```
+ */
 export async function kickOff(req: Request, res: Response) {
     const baseUrl = getRequestBaseURL(req);
     const job = await ExportJob.create(req.params.id)
@@ -95,6 +129,11 @@ export async function kickOff(req: Request, res: Response) {
     res.status(202).json({ message: "Please follow the url in the link header to customize your export" })
 }
 
+/**
+ * @route ```http
+ * GET /jobs/:id/customize
+ * ```
+ */
 export async function renderForm(req: Request, res: Response) {
     
     const job = await ExportJob.byId(req.params.id)
@@ -127,6 +166,11 @@ export async function renderForm(req: Request, res: Response) {
     })
 }
 
+/**
+ * @route ```http
+ * GET /admin/jobs
+ * ```
+ */
 export async function listJobs(req: Request, res: Response) {
     const result = []
     for (const id of await readdir(config.jobsDir)) {
@@ -137,21 +181,41 @@ export async function listJobs(req: Request, res: Response) {
     res.json(result)
 }
 
+/**
+ * @route ```http
+ * GET /admin/jobs/:id
+ * ```
+ */
 export async function getJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     res.json(job)
 }
 
+/**
+ * @route ```http
+ * POST /admin/jobs/:id/approve
+ * ```
+ */
 export async function approveJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     res.json(await job.approve())
 }
 
+/**
+ * @route ```http
+ * POST /admin/jobs/:id/reject
+ * ```
+ */
 export async function rejectJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     res.json(await job.reject())
 }
 
+/**
+ * @route ```http
+ * POST /admin/jobs/:id/add-files
+ * ```
+ */
 export async function addFiles(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     const files = ((req.files || []) as Express.Multer.File[]).filter(f => f.fieldname === "attachments")
@@ -165,6 +229,11 @@ export async function addFiles(req: Request, res: Response) {
     res.json(job)
 }
 
+/**
+ * @route ```http
+ * POST /admin/jobs/:id/remove-files
+ * ```
+ */
 export async function removeFiles(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     const files = req.body.params || []
@@ -175,6 +244,11 @@ export async function removeFiles(req: Request, res: Response) {
     res.json(job)
 }
 
+/**
+ * @route ```http
+ * DELETE /admin/jobs/:id
+ * ```
+ */
 export async function destroyJob(req: Request, res: Response) {
     const job = await ExportJob.byId(req.params.id)
     res.json(await job.destroy())

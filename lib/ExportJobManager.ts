@@ -1,7 +1,7 @@
-import Path        from "path"
-import { readdir } from "fs/promises"
-import config      from "../config"
-import ExportJob   from "./ExportJob"
+import Path          from "path"
+import { readdir }   from "fs/promises"
+import config        from "../config"
+import { ExportJob } from "./ExportJob"
 
 
 let timer: NodeJS.Timeout;
