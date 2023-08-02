@@ -1,0 +1,11 @@
+{
+    "entryPoints": ["./lib", "./index.d.ts"],
+    "entryPointStrategy": "expand",
+    "out": "docs",
+    "compilerOptions": {
+        "types": [
+            "./node_modules/@types/fhir",
+            "./index"
+        ]
+    }
+}

@@ -197,7 +197,7 @@ export function getPath(obj: any, path: string) {
     return path.split(".").reduce((out, key) => out ? out[key] : undefined, obj)
 }
 
-type FHIRPerson = fhir2.Patient | fhir3.Patient | fhir4.Patient | fhir2.Practitioner | fhir3.Practitioner | fhir4.Practitioner
+export type FHIRPerson = fhir2.Patient | fhir3.Patient | fhir4.Patient | fhir2.Practitioner | fhir3.Practitioner | fhir4.Practitioner
 
 export function toArray(x: any) {
     if (!Array.isArray(x)) {
@@ -287,7 +287,7 @@ export async function logout(req: EHI.UserRequest, res: Response) {
     return res.clearCookie("sid").end("Logout successful");
 }
 
-type Patients = Map<string, {
+export type Patients = Map<string, {
     patient: fhir4.Patient;
     file: string;
 }>

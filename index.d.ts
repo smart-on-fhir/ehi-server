@@ -1,5 +1,8 @@
 import { Request } from "express-serve-static-core";
 
+/**
+ * Type definitions for SMART
+ */
 declare namespace SMART {
 
     // For the purpose of this prototype we only support public and
@@ -125,15 +128,49 @@ declare namespace SMART {
     }
 }
 
+/**
+ * Type definitions for EHI export
+ */
 declare namespace EHI {
 
+    /**
+     * The manifest returned by the EHI export status endpoint when the export
+     * is complete. This is very similar to the Bulk Data export manifest.
+     */
     interface ExportManifest {
-        transactionTime: string
-        requiresAccessToken: boolean
+        /**
+         * Array of links to NDJSON files containing errors as OperationOutcomes 
+         */
+        error: ExportManifestErrorEntry[]
+        
+        /**
+         * Array of links to NDJSON files containing FHIR resources 
+         */
         output: ExportManifestFileEntry[]
-        error: any[]
+
+        /**
+         * When was this export started - FHIR instant
+         */
+        transactionTime: string
+
+        /**
+         * This will be true if the server requires the access token to be
+         * included in file download requests
+         */
+        requiresAccessToken: boolean
     }
 
+    /**
+     * Link to NDJSON file containing errors as OperationOutcomes
+     */
+    interface ExportManifestErrorEntry {
+        type: "OperationOutcome"
+        url : string
+    }
+
+    /**
+     * Link to NDJSON file containing FHIR resources of the given type
+     */
     interface ExportManifestFileEntry {
         type  : string
         url   : string

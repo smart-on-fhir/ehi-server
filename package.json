@@ -7,7 +7,9 @@
     "start": "ts-node --skipProject --transpile-only app.ts",
     "start:watch": "nodemon -e ts -x 'npm run start'",
     "test": "NODE_ENV=test nyc --reporter=lcov ts-mocha --exit || exit 1",
-    "test:watch": "NODE_ENV=test nodemon -e ts -x 'npm run test'"
+    "test:watch": "NODE_ENV=test nodemon -e ts -x 'npm run test'",
+    "doc": "typedoc",
+    "doc:watch": "nodemon -e ts -x typedoc"
   },
   "repository": {
     "type": "git",
@@ -48,7 +50,8 @@
     "nodemon": "^2.0.21",
     "nyc": "^15.1.0",
     "supertest": "^6.3.3",
-    "ts-mocha": "^10.0.0"
+    "ts-mocha": "^10.0.0",
+    "typedoc": "^0.24.8"
   },
   "engines": {
     "node": ">=18"
