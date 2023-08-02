@@ -102,7 +102,6 @@ export default class ExportJob
 
     /**
      * Delete a job by ID if:
-     * - The job has been aborted
      * - The job has been completed more than `completedJobLifetimeMinutes` minutes ago
      * - The job started more than `jobMaxLifetimeMinutes` minutes ago and is still pending
      * Note that jobs having "in-review" status will NOT be deleted
@@ -111,7 +110,6 @@ export default class ExportJob
     {
         const job = await ExportJob.byId(id)
         switch (job.status) {
-            case "aborted":
             case "rejected":
                 await job.destroy()
             break;
@@ -183,12 +181,6 @@ export default class ExportJob
         }
         this.path = Path.join(config.jobsDir, this.id)
         this.attachments = [];
-    }
-
-    public async abort()
-    {
-        this.status = "aborted"
-        return await this.save()
     }
 
     protected shouldExportResource(resource: fhir4.Resource): boolean

@@ -160,10 +160,6 @@ declare namespace EHI {
      * - `rejected`
      *    Admin rejected this export and it is scheduled to be deleted
      * 
-     * - `aborted`
-     *    The admin or the patient aborted/canceled this export and it is now 
-     *    scheduled to be deleted
-     * 
      * **Note** that jobs have certain lifetime. Once they expire they will be
      * deleted within the next `config.jobCleanupMinutes` minutes:
      * 
@@ -171,13 +167,11 @@ declare namespace EHI {
      * - `requested`      - Expire after `config.jobMaxLifetimeMinutes`
      * - `retrieved`      - Expire after `config.jobMaxLifetimeMinutes`
      * - `approved`       - Expire after `config.completedJobLifetimeMinutes`
-     * - `aborted`        - Expire immediately
      * - `rejected`       - Expire immediately
      */
     type ExportJobStatus =  "awaiting-input" |
                             "requested" |
                             "retrieved" |
-                            "aborted"   |
                             "approved"  |
                             "rejected";
 

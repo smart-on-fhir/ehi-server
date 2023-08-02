@@ -193,9 +193,5 @@ describe("Jobs", () => {
         job.status = "retrieved"
         await job.reject()
         expect(job.status).to.equal("rejected")
-
-        // Abort (aborted) -----------------------------------------------------
-        await job.abort()
-        expect(job.status).to.equal("aborted")
     })
 })

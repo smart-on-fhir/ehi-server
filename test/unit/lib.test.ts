@@ -81,12 +81,6 @@ describe("lib", () => {
             }
         })
 
-        it ("destroyIfNeeded for aborted jobs", async () => {
-            const job = await ExportJob.create(FIRST_PATIENT_ID)
-            job.status = "aborted"
-            await ExportJob.destroyIfNeeded(job.id)
-        })
-
         it ("destroyIfNeeded for rejected jobs", async () => {
             const job = await ExportJob.create(FIRST_PATIENT_ID)
             job.status = "rejected"
@@ -116,13 +110,6 @@ describe("lib", () => {
             await job.save()
             await ExportJob.destroyIfNeeded(job.id)
         })
-
-        it ("check for aborted jobs", async () => {
-            const job = await ExportJob.create(FIRST_PATIENT_ID)
-            job.status = "aborted"
-            await job.save()
-            await check("test-jobs")
-        }) 
 
     })
 
