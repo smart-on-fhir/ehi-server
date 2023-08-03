@@ -15,7 +15,7 @@ function uInt(x: any, defaultValue = 0) {
 export default {
 
     // The port to listen on. Defaults to `0` for system-allocated port
-    port: env.PORT || 0,
+    port: env.PORT || 8888,
 
     // The host to listen on. If not set defaults to "0.0.0.0"
     host: env.HOST || "0.0.0.0",
