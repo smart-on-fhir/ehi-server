@@ -19,7 +19,24 @@
 <li><strong><a href="https://docs.smarthealthit.org/ehi-server/">Explore the EHI Server API Docs</a></strong></li>
 </ul>
 <hr>
-<p>The server supports the following routes:</p>
+<a id="md:initial-setup" class="tsd-anchor"></a><h2><a href="#md:initial-setup">Initial Setup</a></h2><p>Here&#39;s how to download and set up the project locally for the first time.</p>
+<ol>
+<li>Clone the repo</li>
+</ol>
+<pre><code class="language-sh"><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> </span><span class="hl-2">https://github.com/smart-on-fhir/ehi-server.git</span><br/><span class="hl-3"># Or clone using ssh if your account has ssh keys setup</span><br/><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> </span><span class="hl-2">git@github.com:smart-on-fhir/ehi-server.git</span>
+</code><button>Copy</button></pre>
+<ol start="2">
+<li>Install dependencies in the project root</li>
+</ol>
+<pre><code class="language-sh"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">install</span>
+</code><button>Copy</button></pre>
+<ol start="3">
+<li>Run the server, ideally in watch-mode if you&#39;re making development changes</li>
+</ol>
+<pre><code class="language-sh"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">start:watch</span>
+</code><button>Copy</button></pre>
+<p><strong>NOTE:</strong> If you make changes to the host or port used for this application, make sure to reflect those changes in your local instance of <a href="https://github.com/smart-on-fhir/ehi-app">ehi-app</a>.</p>
+<a id="md:documentation" class="tsd-anchor"></a><h2><a href="#md:documentation">Documentation</a></h2><p>The server supports the following routes:</p>
 <p><strong>EHI Export</strong></p>
 <table>
 <thead>
@@ -32,57 +49,57 @@
 <tbody><tr>
 <td align="right"><code>POST</code></td>
 <td><code>/fhir/Patient/:id/$ehi-export</code></td>
-<td>kick-off EHI export</td>
+<td>Kick-off EHI export</td>
 </tr>
 <tr>
 <td align="right"><code>POST</code></td>
 <td><code>/auto-approve/fhir/Patient/:id/$ehi-export</code></td>
-<td>kick-off EHI export that does not require admin approval</td>
+<td>Kick-off EHI export that does not require admin approval</td>
 </tr>
 <tr>
 <td align="right"><code>POST</code></td>
 <td><code>/no-form/fhir/Patient/:id/$ehi-export</code></td>
-<td>kick-off EHI export that does not have a customization form</td>
+<td>Kick-off EHI export that does not have a customization form</td>
 </tr>
 <tr>
 <td align="right"><code>POST</code></td>
 <td><code>/no-form/auto-approve/fhir/Patient/:id/$ehi-export</code></td>
-<td>kick-off EHI export that does not require admin approval or have a customization form</td>
+<td>Kick-off EHI export that does not require admin approval or have a customization form</td>
 </tr>
 <tr>
 <td align="right"><code>POST</code></td>
 <td><code>/auto-approve/no-form/fhir/Patient/:id/$ehi-export</code></td>
-<td>kick-off EHI export that does not require admin approval or have a customization form</td>
+<td>Kick-off EHI export that does not require admin approval or have a customization form</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
 <td><code>/jobs/:id/customize</code></td>
-<td>render job customization form</td>
+<td>Render job customization form</td>
 </tr>
 <tr>
 <td align="right"><code>POST</code></td>
 <td><code>/jobs/:id</code></td>
-<td>customize and start job</td>
+<td>Customize and start job</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
 <td><code>/jobs/:id/status</code></td>
-<td>get job status</td>
+<td>Get job status</td>
 </tr>
 <tr>
 <td align="right"><code>DELETE</code></td>
 <td><code>/jobs/:id/status</code></td>
-<td>abort/delete job</td>
+<td>Abort/delete job</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
 <td><code>/jobs/:id/download/:file</code></td>
-<td>download resource file</td>
+<td>Download resource file</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
 <td><code>/jobs/:id/download/attachments/:file</code></td>
-<td>download attachment file</td>
+<td>Download attachment file</td>
 </tr>
 </tbody></table>
 <p><strong>SMART &amp; FHIR</strong></p>
@@ -137,12 +154,12 @@
 <tbody><tr>
 <td align="right"><code>POST</code></td>
 <td><code>/admin/login</code></td>
-<td>login</td>
+<td>Login</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
 <td><code>/admin/logout</code></td>
-<td>logout</td>
+<td>Logout</td>
 </tr>
 <tr>
 <td align="right"><code>GET</code></td>
@@ -182,7 +199,7 @@
 </tbody></table>
 <a id="md:ehi-export-flow-for-clients" class="tsd-anchor"></a><h2><a href="#md:ehi-export-flow-for-clients">EHI Export Flow for Clients</a></h2><hr>
 <ol>
-<li>Kick-off<pre><code class="language-http"><span class="hl-0">POST</span><span class="hl-1"> /fhir/Patient/:id/$ehi-export</span><br/><span class="hl-2">authorization</span><span class="hl-3">:</span><span class="hl-1"> </span><span class="hl-4">Bearer ...</span><br/><span class="hl-2">content-type</span><span class="hl-3">:</span><span class="hl-1"> </span><span class="hl-4">application/json</span>
+<li>Kick-off<pre><code class="language-http"><span class="hl-4">POST</span><span class="hl-1"> /fhir/Patient/:id/$ehi-export</span><br/><span class="hl-5">authorization</span><span class="hl-6">:</span><span class="hl-1"> </span><span class="hl-2">Bearer ...</span><br/><span class="hl-5">content-type</span><span class="hl-6">:</span><span class="hl-1"> </span><span class="hl-2">application/json</span>
 </code><button>Copy</button></pre>
 </li>
 <li>Inspect kick-off response headers<ul>
@@ -191,7 +208,7 @@
 </ul>
 </li>
 <li>If <code>Link</code> header is sent, redirect the user there to customize and start the export</li>
-<li>Wait! Pooling can be used to check periodically at <code>/jobs/:id/status</code>.<ul>
+<li>Wait! Polling can be used to check periodically at <code>/jobs/:id/status</code>.<ul>
 <li>If the response status code is <code>202</code> schedule another check for later and exit</li>
 <li>If the response status code is <code>200</code> the export is complete. Save the response manifest and proceed to #5.</li>
 <li>Any other response status code - print an error and exit</li>
@@ -201,8 +218,7 @@
 <li>Optionally send a DELETE request to the status endpoint to let the server know that the exported data can be deleted</li>
 </ol>
 <a id="md:proprietary-additions" class="tsd-anchor"></a><h2><a href="#md:proprietary-additions">Proprietary Additions</a></h2><hr>
-<p>There are several things that we had to add in our implementation to improve usability. The EHI Export specification is in it&#39;s early proposal stage. We assume that some of these additions may
-be standardized later. They are listed here for clarity.</p>
+<p>There are several things that we had to add in our implementation to improve usability. The EHI Export specification is in it&#39;s early proposal stage. We assume that some of these additions may be standardized later. They are listed here for clarity.</p>
 <ul>
 <li>To make the <code>kick-off</code> endpoint callable from web apps we have to use CORS. This will hide most
  response headers from clients, unless otherwise specified. For that reason we had to add
@@ -237,6 +253,8 @@ creating their own client apps and want to test them with this server.</li>
 <li><a href="#md:ehi-server"><span>ehi-<wbr/>server</span></a></li>
 <li>
 <ul>
+<li><a href="#md:initial-setup"><span>Initial <wbr/>Setup</span></a></li>
+<li><a href="#md:documentation"><span>Documentation</span></a></li>
 <li><a href="#md:ehi-export-flow-for-clients"><span>EHI <wbr/>Export <wbr/>Flow for <wbr/>Clients</span></a></li>
 <li><a href="#md:proprietary-additions"><span>Proprietary <wbr/>Additions</span></a></li></ul></li></ul></li></ul></div></details></div>
 <div class="site-menu">
