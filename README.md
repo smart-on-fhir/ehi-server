@@ -2,7 +2,7 @@
 This is an EHI Export Server POC implementation based on https://build.fhir.org/ig/argonautproject/ehi-api/ehi-export.html.
 
 ---
-- **[Try the EHI Export Demo App](https://ehi-app.herokuapp.com/)**
+- **[Try the EHI Export Demo App](https://ehi-app.smarthealthit.org/)**
 - **[Explore the EHI Server API Docs](https://docs.smarthealthit.org/ehi-server/)**
 ---
 
